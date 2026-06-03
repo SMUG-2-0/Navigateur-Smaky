@@ -1,0 +1,26 @@
+# =========================================================================
+#  DONNÉES PRIVÉES — NE JAMAIS COMMITTER
+#  Les images disque Smaky et tout ce qui en est extrait sont des données
+#  privées sous autorisation restreinte (ne pas diffuser).
+# =========================================================================
+*.DI
+*.di
+*_extracted/
+ALPINE_extracted/
+
+# Contexte privé (nomme des personnes, autorisations)
+claude.md
+
+# Harness / outils locaux
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Systèmes
+.DS_Store
+Thumbs.db
+desktop.ini
