@@ -20,6 +20,11 @@ __pycache__/
 .venv/
 venv/
 
+# Node / Electron
+node_modules/
+dist/
+out/
+
 # Systèmes
 .DS_Store
 Thumbs.db

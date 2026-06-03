@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;" />
+  <title>Navigateur Smaky</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header id="topbar">
+    <button id="openBtn">📂 Ouvrir un dossier extrait…</button>
+    <button id="reportBtn" disabled>📊 Rapport…</button>
+    <span id="folderPath" class="muted">aucun dossier ouvert</span>
+
+    <div class="topzones">
+      <div class="zone" title="À venir (jalon M2)">
+        <label>Types (extensions)</label>
+        <input id="extFilter" type="text" placeholder="inclure/exclure — à venir (M2)" disabled />
+      </div>
+      <div class="zone" title="À venir (jalon M3)">
+        <label>Recherche dans les textes</label>
+        <input id="textSearch" type="text" placeholder="pattern — à venir (M3)" disabled />
+      </div>
+    </div>
+  </header>
+
+  <main id="layout">
+    <section id="treePane" aria-label="Arborescence">
+      <div id="tree" class="tree"></div>
+    </section>
+
+    <section id="viewPane" aria-label="Visualisation">
+      <div id="meta" class="meta hidden"></div>
+      <div id="viewerToolbar" class="viewer-toolbar hidden">
+        <span id="viewerNote" class="muted"></span>
+      </div>
+      <div id="content" class="content">
+        <p class="placeholder">Ouvre un dossier extrait, puis sélectionne un fichier.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Dialogue Rapport -->
+  <div id="reportModal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <strong>Rapport du disque</strong>
+        <button id="reportClose" class="icon-btn" title="Fermer">✕</button>
+      </div>
+      <div class="modal-opts">
+        <label>Périmètre
+          <select id="reportScope"></select>
+        </label>
+        <label>Tri des extensions
+          <select id="reportSort">
+            <option value="count">par nombre</option>
+            <option value="size">par taille</option>
+            <option value="alpha">alphabétique</option>
+          </select>
+        </label>
+        <label>Format
+          <select id="reportFormat">
+            <option value="text">Texte</option>
+            <option value="csv">CSV</option>
+            <option value="html">HTML</option>
+          </select>
+        </label>
+        <span class="spacer"></span>
+        <button id="reportCopy">Copier</button>
+        <button id="reportSave">Enregistrer…</button>
+      </div>
+      <pre id="reportPreview" class="report-preview"></pre>
+      <div id="reportStatus" class="muted"></div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

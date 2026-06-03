@@ -1,0 +1,16 @@
+{
+  "name": "smaky-viewer",
+  "version": "0.1.0",
+  "description": "Navigateur et visualiseur de disques Smaky extraits (format FOS)",
+  "main": "main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Pierre-Yves Rochat",
+  "license": "UNLICENSED",
+  "private": true,
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}

@@ -40,8 +40,13 @@ image .DI ──[ FOSfat / extract_di.py ]──► dossier (tree/ + manifest.js
 |-------|-------------|------|
 | 0 | Compiler FOSfat, valider la lecture de l'image | ✅ fait |
 | 1 | Extraction `.DI` → `tree/` + `manifest.json` | ✅ fait — voir [docs/extraction-phase1.md](docs/extraction-phase1.md) |
-| 2 | Bibliothèque d'analyse Python (décodage texte, images, inventaire) | à venir |
-| 3 | Livrables pour la recherche (rapport navigable, exports) | à venir |
+| 2 | Navigateur/visualiseur interactif (Electron) | 🚧 en cours — voir [`viewer/`](viewer/) |
+| 3 | Livrables pour la recherche (rapports, exports) | à venir |
+
+L'analyse interactive se fait dans une application **Electron** (`viewer/`) : interface
+de navigation (arbre + visualiseur), génération de rapports, et visualiseurs de
+formats Smaky décodés à la volée (texte ; format Typo — voir
+[docs/format-typo.md](docs/format-typo.md)).
 
 ## Démarrage rapide
 
@@ -55,14 +60,31 @@ python3 tools/extract_di.py ALPINE.DI ALPINE_extracted   # extraction complète
 python3 tools/verify_extract.py ALPINE_extracted          # contrôle d'intégrité
 ```
 
+## L'application (viewer/)
+
+Application Electron (Node.js). Lancement :
+
+```bash
+cd viewer
+npm install      # la première fois
+npm start
+```
+
+Puis « Ouvrir un dossier extrait… » et choisir le dossier produit en phase 1
+(celui qui contient `manifest.json` et `tree/`).
+
 ## Contenu du dépôt
 
 ```
 tools/
   extract_di.py      extraction .DI → dossier (+ manifest.json)
   verify_extract.py  contrôle d'intégrité (manifeste vs fichiers extraits)
+viewer/              application Electron (navigateur, rapports, visualiseurs)
+  main.js, preload.js, package.json
+  renderer/          interface (HTML/CSS/JS) + décodeurs de formats Smaky
 docs/
   extraction-phase1.md   mode d'emploi détaillé de la phase 1
+  format-typo.md         notes sur le format de composition Typo
 README.md
 .gitignore
 ```
