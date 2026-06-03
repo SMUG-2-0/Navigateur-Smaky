@@ -14,9 +14,9 @@
     <span id="folderPath" class="muted">aucun dossier ouvert</span>
 
     <div class="topzones">
-      <div class="zone" title="À venir (jalon M2)">
+      <div class="zone">
         <label>Types (extensions)</label>
-        <input id="extFilter" type="text" placeholder="inclure/exclure — à venir (M2)" disabled />
+        <button id="extBtn" disabled>Tous les types ▾</button>
       </div>
       <div class="zone" title="À venir (jalon M3)">
         <label>Recherche dans les textes</label>
@@ -24,6 +24,25 @@
       </div>
     </div>
   </header>
+
+  <!-- Panneau de sélection des extensions -->
+  <div id="extPanel" class="ext-panel hidden">
+    <div class="ext-head">
+      <div class="ext-mode">
+        <label><input type="radio" name="extmode" value="include" checked> N'afficher que</label>
+        <label><input type="radio" name="extmode" value="exclude"> Masquer</label>
+      </div>
+      <button id="extClose" class="icon-btn" title="Fermer">✕</button>
+    </div>
+    <input id="extSearch" type="text" placeholder="filtrer la liste…" />
+    <div class="ext-actions">
+      <button id="extAll">Tout cocher</button>
+      <button id="extNone">Tout décocher</button>
+      <label class="ext-alpha"><input type="checkbox" id="extAlpha"> Alphabétique</label>
+      <span id="extSelCount" class="muted"></span>
+    </div>
+    <div id="extList" class="ext-list"></div>
+  </div>
 
   <main id="layout">
     <section id="treePane" aria-label="Arborescence">

@@ -27,6 +27,9 @@ async function openFolder() {
   state.manifest = m.manifest;
   state.currentDir = null;
   el("reportBtn").disabled = false;
+  el("extBtn").disabled = false;
+  resetFilter();
+  buildExtList();
   renderTree(m.manifest.tree || []);
   const s = m.manifest.stats || {};
   el("content").innerHTML =
@@ -43,11 +46,47 @@ function sortNodes(nodes) {
   });
 }
 
+// --- Filtre par extension --------------------------------------------------
+
+const filter = { mode: "include", exts: new Set() };
+const filterActive = () => filter.exts.size > 0;
+
+function fileVisible(node) {
+  if (!filterActive()) return true;
+  const e = node.smaky_ext || "(sans)";
+  return filter.mode === "include" ? filter.exts.has(e) : !filter.exts.has(e);
+}
+
+// Marque chaque dossier (node.__match) selon qu'il contient un fichier visible.
+function computeMatches(nodes) {
+  let any = false;
+  for (const n of nodes) {
+    if (n.type === "dir") { n.__match = computeMatches(n.children || []); any ||= n.__match; }
+    else if (n.type === "file" && fileVisible(n)) any = true;
+  }
+  return any;
+}
+
+// Enfants visibles (dossiers avec correspondance, fichiers du bon type), triés.
+function visibleNodes(nodes) {
+  if (!filterActive()) return sortNodes(nodes);
+  return sortNodes(nodes.filter((n) =>
+    n.type === "dir" ? n.__match : (n.type === "file" && fileVisible(n))));
+}
+
+function applyFilter() {
+  if (filterActive()) computeMatches(state.manifest.tree || []);
+  renderTree(state.manifest.tree || []);
+  const n = filter.exts.size;
+  const verb = filter.mode === "include" ? "Afficher" : "Masquer";
+  el("extBtn").textContent = n ? `${verb} ${n} type${n > 1 ? "s" : ""} ▾` : "Tous les types ▾";
+}
+
 function renderTree(nodes) {
   const root = el("tree");
   root.innerHTML = "";
   const ul = document.createElement("ul");
-  for (const n of sortNodes(nodes)) ul.appendChild(makeNode(n));
+  for (const n of visibleNodes(nodes)) ul.appendChild(makeNode(n));
   root.appendChild(ul);
 }
 
@@ -82,7 +121,7 @@ function makeNode(node) {
       twisty.textContent = expanded ? "▼" : "▶";
       if (expanded && !childrenUl) {
         childrenUl = document.createElement("ul");
-        for (const c of sortNodes(node.children || [])) childrenUl.appendChild(makeNode(c));
+        for (const c of visibleNodes(node.children || [])) childrenUl.appendChild(makeNode(c));
         li.appendChild(childrenUl);
       } else if (childrenUl) {
         childrenUl.classList.toggle("hidden", !expanded);
@@ -306,4 +345,85 @@ async function saveReport() {
   const res = await window.api.saveText(`rapport_${base}.${ext}`, reportContent);
   if (res && res.path) el("reportStatus").textContent = "Enregistré : " + res.path;
   else if (res && res.error) el("reportStatus").textContent = "Erreur : " + res.error;
+}
+
+// --- Panneau de sélection des extensions -----------------------------------
+
+el("extBtn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const p = el("extPanel");
+  p.classList.toggle("hidden");
+  if (!p.classList.contains("hidden")) el("extSearch").focus();
+});
+el("extClose").addEventListener("click", () => el("extPanel").classList.add("hidden"));
+document.addEventListener("click", (e) => {
+  const p = el("extPanel");
+  if (!p.classList.contains("hidden") && !p.contains(e.target) && e.target !== el("extBtn"))
+    p.classList.add("hidden");
+});
+el("extSearch").addEventListener("input", () => renderExtList(el("extSearch").value));
+el("extAlpha").addEventListener("change", () => renderExtList(el("extSearch").value));
+document.querySelectorAll('input[name="extmode"]').forEach((r) =>
+  r.addEventListener("change", () => {
+    filter.mode = document.querySelector('input[name="extmode"]:checked').value;
+    applyFilter();
+  }));
+el("extAll").addEventListener("click", () => {
+  el("extList").querySelectorAll("input[type=checkbox]").forEach((cb) => { filter.exts.add(cb.value); cb.checked = true; });
+  applyFilter(); updateSelCount();
+});
+el("extNone").addEventListener("click", () => {
+  el("extList").querySelectorAll("input[type=checkbox]").forEach((cb) => { filter.exts.delete(cb.value); cb.checked = false; });
+  applyFilter(); updateSelCount();
+});
+
+function resetFilter() {
+  filter.exts.clear();
+  filter.mode = "include";
+  const inc = document.querySelector('input[name="extmode"][value="include"]');
+  if (inc) inc.checked = true;
+  el("extBtn").textContent = "Tous les types ▾";
+  updateSelCount();
+}
+
+function buildExtList() {
+  const rep = computeReport(state.manifest.tree || []);
+  state.extCounts = [...rep.byExt.entries()]
+    .map(([ext, v]) => ({ ext, count: v.count }))
+    .sort((a, b) => b.count - a.count || a.ext.localeCompare(b.ext, "fr"));
+  renderExtList("");
+}
+
+function renderExtList(q) {
+  const list = el("extList");
+  list.innerHTML = "";
+  const ql = q.trim().toLowerCase();
+  const alpha = el("extAlpha").checked;
+  const items = [...(state.extCounts || [])].sort((a, b) =>
+    alpha ? a.ext.localeCompare(b.ext, "fr") : (b.count - a.count || a.ext.localeCompare(b.ext, "fr")));
+  for (const { ext, count } of items) {
+    if (ql && !ext.toLowerCase().includes(ql)) continue;
+    const label = document.createElement("label");
+    label.className = "ext-item";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.value = ext;
+    cb.checked = filter.exts.has(ext);
+    cb.addEventListener("change", () => {
+      if (cb.checked) filter.exts.add(ext); else filter.exts.delete(ext);
+      applyFilter(); updateSelCount();
+    });
+    const name = document.createElement("span");
+    name.className = "ext-name";
+    name.textContent = ext;
+    const n = document.createElement("span");
+    n.className = "ext-n";
+    n.textContent = count.toLocaleString("fr");
+    label.append(cb, name, n);
+    list.appendChild(label);
+  }
+}
+
+function updateSelCount() {
+  el("extSelCount").textContent = filter.exts.size ? `${filter.exts.size} sélectionnée(s)` : "";
 }
