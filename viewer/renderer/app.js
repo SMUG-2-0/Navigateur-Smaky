@@ -1,5 +1,6 @@
 import { decodeSmakyText, textRatio } from "./decoders/smakytext.js";
 import { renderTypoReadableHTML, renderTypoSourceHTML } from "./decoders/typo.js";
+import { decodeImage } from "./decoders/smakyimage.js";
 import { computeReport, formatReport } from "./report.js";
 
 // Extensions considérées comme du texte par défaut (sinon : affichage hexa).
@@ -125,6 +126,7 @@ function showMeta(node) {
 // --- Visualiseur : modes dynamiques selon le type de fichier ---------------
 
 const MODES = {
+  image:       { label: "Image",   render: renderImage },
   text:        { label: "Texte",   render: renderText },
   "typo-read": { label: "Lecture", render: (b) => renderHTMLView(renderTypoReadableHTML(b), b, "rendu indicatif") },
   "typo-src":  { label: "Source",  render: (b) => renderHTMLView(renderTypoSourceHTML(b), b) },
@@ -132,6 +134,7 @@ const MODES = {
 };
 
 function modesForNode(node, bytes) {
+  if (node.smaky_ext === "image" || node.smaky_ext === "color") return ["image", "hex"];
   if (node.smaky_ext === "typo") return ["typo-read", "typo-src", "hex"];
   const looksText = TEXT_EXTS.has(node.smaky_ext) || textRatio(bytes) > 0.85;
   return looksText ? ["text", "hex"] : ["hex", "text"];
@@ -171,6 +174,45 @@ function renderHTMLView(html, bytes, note) {
   el("content").innerHTML = html;
   el("viewerNote").textContent =
     `${bytes.length.toLocaleString("fr")} octets` + (note ? ` — ${note}` : "");
+}
+
+function renderImage(bytes) {
+  const content = el("content");
+  content.innerHTML = "";
+  const img = decodeImage(bytes, state.node.smaky_ext);
+  if (!img) {
+    content.innerHTML = '<p class="error">Image non décodable (en-tête inattendu). Essaie le mode Hexa.</p>';
+    el("viewerNote").textContent = "";
+    return;
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  canvas.className = "img-canvas";
+  canvas.getContext("2d").putImageData(new ImageData(img.rgba, img.width, img.height), 0, 0);
+
+  // Barre de zoom (les images Smaky sont souvent petites).
+  let scale = Math.min(8, Math.max(1, Math.floor(160 / Math.min(img.width, img.height)) || 1));
+  const apply = () => {
+    canvas.style.width = img.width * scale + "px";
+    canvas.style.height = img.height * scale + "px";
+    bar.querySelectorAll("button").forEach((b) => b.classList.toggle("active", +b.dataset.s === scale));
+  };
+  const bar = document.createElement("div");
+  bar.className = "img-zoom";
+  for (const s of [1, 2, 4, 8]) {
+    const b = document.createElement("button");
+    b.textContent = "×" + s;
+    b.dataset.s = s;
+    b.addEventListener("click", () => { scale = s; apply(); });
+    bar.appendChild(b);
+  }
+  const wrap = document.createElement("div");
+  wrap.className = "img-wrap";
+  wrap.appendChild(canvas);
+  content.append(bar, wrap);
+  apply();
+  el("viewerNote").textContent = `${img.width}×${img.height}, ${img.bpp} bpp`;
 }
 
 function renderHex(bytes) {

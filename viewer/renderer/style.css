@@ -115,6 +115,20 @@ body { display: flex; flex-direction: column; height: 100vh; }
 pre.typo-src { white-space: pre-wrap; word-break: break-word; }
 pre.typo-src .t-cmd { color: #6a9955; } /* commandes \... atténuées */
 
+/* --- Visualiseur d'images --- */
+.img-zoom { display: flex; gap: 6px; margin-bottom: 12px; }
+.img-zoom button {
+  background: var(--panel); color: var(--text); border: 1px solid var(--border);
+  padding: 2px 10px; border-radius: 6px; cursor: pointer;
+}
+.img-zoom button.active { background: var(--accent); color: #07203a; border-color: var(--accent); }
+.img-wrap { overflow: auto; }
+.img-canvas {
+  image-rendering: pixelated;
+  background: #fff;
+  border: 1px solid var(--border);
+}
+
 /* --- Dialogue Rapport --- */
 .modal {
   position: fixed; inset: 0; background: #000a;
