@@ -73,6 +73,26 @@ npm start
 Puis « Ouvrir un dossier extrait… » et choisir le dossier produit en phase 1
 (celui qui contient `manifest.json` et `tree/`).
 
+## Construire des exécutables (distribution)
+
+Depuis `viewer/`, avec [electron-builder](https://www.electron.build/) :
+
+```bash
+npm run dist:win      # Windows : installateur NSIS + version portable
+npm run dist:linux    # Linux : AppImage + .deb (à lancer sous Linux ou WSL)
+npm run dist:mac      # macOS : .dmg (à lancer sous macOS uniquement)
+```
+
+Les artefacts sont produits dans `viewer/dist/` (ignoré par git). Chaque cible se
+construit sur le système d'exploitation correspondant : Windows pour les `.exe`,
+Linux/WSL pour AppImage/deb, et **macOS est requis pour produire une version Mac**.
+
+## Licence
+
+Logiciel libre sous **GNU General Public License v3** — voir [LICENSE](LICENSE).
+© 2026 Epsitec SA et Pierre-Yves Rochat. S'appuie sur FOSfat / libfosgra
+(Mathieu Schroeter, Epsitec SA), également sous GPL v3.
+
 ## Contenu du dépôt
 
 ```

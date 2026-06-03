@@ -5,12 +5,33 @@
   "main": "main.js",
   "type": "commonjs",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
+    "dist:mac": "electron-builder --mac"
   },
   "author": "Pierre-Yves Rochat",
-  "license": "UNLICENSED",
+  "license": "GPL-3.0-or-later",
   "private": true,
   "devDependencies": {
-    "electron": "^33.0.0"
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "ch.epsitec.smaky.viewer",
+    "productName": "Navigateur Smaky",
+    "copyright": "© 2026 Epsitec SA, Pierre-Yves Rochat",
+    "directories": { "output": "dist" },
+    "files": [
+      "main.js",
+      "preload.js",
+      "help.md",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "win": { "target": ["nsis", "portable"] },
+    "linux": { "target": ["AppImage", "deb"], "category": "Utility" },
+    "mac": { "target": ["dmg"], "category": "public.app-category.utilities" }
   }
 }

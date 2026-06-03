@@ -1,3 +1,11 @@
+/*
+ * Navigateur Smaky — Copyright (C) 2026 Epsitec SA, Pierre-Yves Rochat.
+ * Logiciel libre sous GNU General Public License v3 — voir le fichier LICENSE.
+ *
+ * Ce module est un portage en JavaScript de libfosgra (projet FOSfat,
+ * Mathieu Schroeter, Epsitec SA), lui-même sous GPL v3.
+ */
+
 // Décodage des images Smaky .IMAGE (1 bit/pixel) et .COLOR (4 bits/pixel).
 //
 // Porté de FOSfat (libfosgra/fosgra.c, bmp.c) et validé au pixel près contre les

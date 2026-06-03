@@ -11,6 +11,8 @@
   <header id="topbar">
     <button id="openBtn">📂 Ouvrir un dossier extrait…</button>
     <button id="reportBtn" disabled>📊 Rapport…</button>
+    <button id="helpBtn">❔ Aide</button>
+    <span id="appVersion" class="muted"></span>
     <span id="folderPath" class="muted">aucun dossier ouvert</span>
 
     <div class="topzones">
@@ -18,9 +20,13 @@
         <label>Types (extensions)</label>
         <button id="extBtn" disabled>Tous les types ▾</button>
       </div>
-      <div class="zone" title="À venir (jalon M3)">
+      <div class="zone">
         <label>Recherche dans les textes</label>
-        <input id="textSearch" type="text" placeholder="pattern — à venir (M3)" disabled />
+        <div class="search-row">
+          <input id="textSearch" type="search" placeholder="mot ou expression… (Entrée)" disabled />
+          <button id="optCase" class="opt" title="Respecter la casse" disabled>Aa</button>
+          <button id="optRegex" class="opt" title="Expression régulière (.*)" disabled>.*</button>
+        </div>
       </div>
     </div>
   </header>
@@ -46,7 +52,12 @@
 
   <main id="layout">
     <section id="treePane" aria-label="Arborescence">
+      <div id="treeTabs" class="tree-tabs hidden">
+        <button id="tabTree" class="active">Arborescence</button>
+        <button id="tabResults">Résultats</button>
+      </div>
       <div id="tree" class="tree"></div>
+      <div id="results" class="results hidden"></div>
     </section>
 
     <section id="viewPane" aria-label="Visualisation">
@@ -91,6 +102,17 @@
       </div>
       <pre id="reportPreview" class="report-preview"></pre>
       <div id="reportStatus" class="muted"></div>
+    </div>
+  </div>
+
+  <!-- Fenêtre d'aide -->
+  <div id="helpModal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <strong>Aide — Navigateur Smaky</strong>
+        <button id="helpClose" class="icon-btn" title="Fermer">✕</button>
+      </div>
+      <div id="helpBody" class="help-body"></div>
     </div>
   </div>
 

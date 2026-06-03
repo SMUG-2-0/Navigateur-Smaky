@@ -10,4 +10,8 @@ contextBridge.exposeInMainWorld("api", {
   readFile: (fosPath) => ipcRenderer.invoke("read-file", fosPath),
   copyText: (text) => ipcRenderer.invoke("copy-text", text),
   saveText: (defaultName, content) => ipcRenderer.invoke("save-text", { defaultName, content }),
+  // params: { paths, query, regex, caseSensitive, accentInsensitive }
+  search: (params) => ipcRenderer.invoke("search", params),
+  readHelp: () => ipcRenderer.invoke("read-help"),
+  getVersion: () => ipcRenderer.invoke("get-version"),
 });

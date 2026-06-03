@@ -13,6 +13,9 @@ const HEX_LIMIT = 64 * 1024; // octets affichés en mode hexa
 const el = (id) => document.getElementById(id);
 const state = { manifest: null, node: null, bytes: null, mode: "text", currentDir: null };
 
+// Affiche la version de l'application dans l'en-tête.
+window.api.getVersion().then((v) => { el("appVersion").textContent = "v" + v; });
+
 // --- Ouverture du dossier --------------------------------------------------
 
 el("openBtn").addEventListener("click", openFolder);
@@ -28,7 +31,11 @@ async function openFolder() {
   state.currentDir = null;
   el("reportBtn").disabled = false;
   el("extBtn").disabled = false;
+  el("textSearch").disabled = false;
+  el("optCase").disabled = false;
+  el("optRegex").disabled = false;
   resetFilter();
+  resetSearch();
   buildExtList();
   renderTree(m.manifest.tree || []);
   const s = m.manifest.stats || {};
@@ -128,23 +135,27 @@ function makeNode(node) {
       }
     });
   } else {
-    row.addEventListener("click", () => selectFile(node, row));
+    row.addEventListener("click", () => { markSelected(row); selectFile(node); });
   }
   return li;
 }
 
 // --- Sélection / visualisation --------------------------------------------
 
-async function selectFile(node, row) {
-  document.querySelectorAll(".node-row.selected").forEach((r) => r.classList.remove("selected"));
-  row.classList.add("selected");
+async function selectFile(node, forceMode) {
   state.node = node;
   showMeta(node);
 
   const res = await window.api.readFile(node.fos_path);
   if (res.error) { showError(res.error); return; }
   state.bytes = new Uint8Array(res.bytes);
-  showViewer(node, state.bytes);
+  showViewer(node, state.bytes, forceMode);
+}
+
+function markSelected(elem) {
+  document.querySelectorAll(".node-row.selected, .res-item.selected")
+    .forEach((e) => e.classList.remove("selected"));
+  elem.classList.add("selected");
 }
 
 function showMeta(node) {
@@ -179,7 +190,7 @@ function modesForNode(node, bytes) {
   return looksText ? ["text", "hex"] : ["hex", "text"];
 }
 
-function showViewer(node, bytes) {
+function showViewer(node, bytes, forceMode) {
   const modes = modesForNode(node, bytes);
   const tb = el("viewerToolbar");
   tb.classList.remove("hidden");
@@ -192,14 +203,18 @@ function showViewer(node, bytes) {
     btn.addEventListener("click", () => setMode(id));
     tb.insertBefore(btn, note);
   }
-  setMode(modes[0]);
+  setMode(forceMode && modes.includes(forceMode) ? forceMode : modes[0]);
 }
 
 function setMode(mode) {
   state.mode = mode;
   el("viewerToolbar").querySelectorAll("button").forEach((b) =>
     b.classList.toggle("active", b.dataset.mode === mode));
-  if (state.bytes) MODES[mode].render(state.bytes);
+  if (!state.bytes) return;
+  MODES[mode].render(state.bytes);
+  // Surligne les correspondances de recherche dans les modes texte.
+  if (state.searchRe && ["text", "typo-read", "typo-src"].includes(mode))
+    highlightDOM(el("content"), state.searchRe);
 }
 
 function renderText(bytes) {
@@ -426,4 +441,221 @@ function renderExtList(q) {
 
 function updateSelCount() {
   el("extSelCount").textContent = filter.exts.size ? `${filter.exts.size} sélectionnée(s)` : "";
+}
+
+// --- Aide (rendu Markdown) -------------------------------------------------
+
+let helpLoaded = false;
+el("helpBtn").addEventListener("click", openHelp);
+el("helpClose").addEventListener("click", () => el("helpModal").classList.add("hidden"));
+el("helpModal").addEventListener("click", (e) => {
+  if (e.target === el("helpModal")) el("helpModal").classList.add("hidden");
+});
+
+async function openHelp() {
+  if (!helpLoaded) {
+    const r = await window.api.readHelp();
+    el("helpBody").innerHTML = r.error
+      ? `<p class="error">Aide indisponible : ${r.error}</p>`
+      : mdToHTML(r.text);
+    helpLoaded = true;
+  }
+  el("helpModal").classList.remove("hidden");
+}
+
+const mdEsc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+function mdInline(s) {
+  return mdEsc(s)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+}
+
+// Mini-convertisseur Markdown -> HTML (suffisant pour notre fichier d'aide).
+function mdToHTML(md) {
+  const lines = md.replace(/\r\n/g, "\n").split("\n");
+  const out = [];
+  let i = 0, list = null;
+  const closeList = () => { if (list) { out.push(list === "ul" ? "</ul>" : "</ol>"); list = null; } };
+  const special = (l) => l.startsWith("```") || /^(#{1,4})\s/.test(l)
+    || /^[-*]\s/.test(l) || /^\d+\.\s/.test(l) || /^---+$/.test(l.trim());
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.startsWith("```")) {
+      closeList(); i++;
+      const buf = [];
+      while (i < lines.length && !lines[i].startsWith("```")) { buf.push(mdEsc(lines[i])); i++; }
+      i++;
+      out.push("<pre><code>" + buf.join("\n") + "</code></pre>");
+      continue;
+    }
+    const h = line.match(/^(#{1,4})\s+(.*)$/);
+    if (h) { closeList(); out.push(`<h${h[1].length}>${mdInline(h[2])}</h${h[1].length}>`); i++; continue; }
+    if (/^---+$/.test(line.trim())) { closeList(); out.push("<hr>"); i++; continue; }
+    const ul = line.match(/^[-*]\s+(.*)$/);
+    if (ul) { if (list !== "ul") { closeList(); out.push("<ul>"); list = "ul"; } out.push("<li>" + mdInline(ul[1]) + "</li>"); i++; continue; }
+    const ol = line.match(/^\d+\.\s+(.*)$/);
+    if (ol) { if (list !== "ol") { closeList(); out.push("<ol>"); list = "ol"; } out.push("<li>" + mdInline(ol[1]) + "</li>"); i++; continue; }
+    if (line.trim() === "") { closeList(); i++; continue; }
+    closeList();
+    const para = [line]; i++;
+    while (i < lines.length && lines[i].trim() !== "" && !special(lines[i])) { para.push(lines[i]); i++; }
+    out.push("<p>" + para.map(mdInline).join(" ") + "</p>");
+  }
+  closeList();
+  return out.join("\n");
+}
+
+// --- Recherche plein-texte (M3) --------------------------------------------
+
+const SEARCH_EXTS = new Set([...TEXT_EXTS, "typo"]);
+const search = { caseSensitive: false, regex: false };
+
+el("optCase").addEventListener("click", () => toggleOpt("optCase", "caseSensitive"));
+el("optRegex").addEventListener("click", () => toggleOpt("optRegex", "regex"));
+function toggleOpt(id, key) {
+  search[key] = !search[key];
+  el(id).classList.toggle("active", search[key]);
+  if (el("textSearch").value.trim()) runSearch();
+}
+el("textSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") runSearch(); });
+el("textSearch").addEventListener("search", () => { if (!el("textSearch").value.trim()) clearSearch(); });
+
+el("tabTree").addEventListener("click", () => showLeft("tree"));
+el("tabResults").addEventListener("click", () => showLeft("results"));
+function showLeft(which) {
+  el("tree").classList.toggle("hidden", which !== "tree");
+  el("results").classList.toggle("hidden", which !== "results");
+  el("tabTree").classList.toggle("active", which === "tree");
+  el("tabResults").classList.toggle("active", which === "results");
+}
+
+function resetSearch() {
+  el("textSearch").value = "";
+  state.search = null;
+  state.searchRe = null;
+  el("results").innerHTML = "";
+  el("tabResults").textContent = "Résultats";
+  el("treeTabs").classList.add("hidden");
+  showLeft("tree");
+}
+
+// Fichiers candidats : extensions « texte », en respectant le filtre M2.
+function gatherSearchCandidates() {
+  const out = [];
+  (function w(ns) {
+    for (const n of ns) {
+      if (n.type === "dir") w(n.children || []);
+      else if (n.type === "file" && SEARCH_EXTS.has(n.smaky_ext) && fileVisible(n)) out.push(n);
+    }
+  })(state.manifest.tree || []);
+  return out;
+}
+
+async function runSearch() {
+  const query = el("textSearch").value;
+  if (!query.trim()) { clearSearch(); return; }
+
+  const candidates = gatherSearchCandidates();
+  state.resultNodes = new Map(candidates.map((n) => [n.fos_path, n]));
+  state.search = { query, ...search };
+  state.searchRe = buildHighlightRegex(query, search);
+
+  el("treeTabs").classList.remove("hidden");
+  showLeft("results");
+  el("results").innerHTML =
+    `<div class="res-info">Recherche dans ${candidates.length.toLocaleString("fr")} fichiers…</div>`;
+
+  const res = await window.api.search({
+    paths: candidates.map((n) => n.fos_path),
+    query,
+    regex: search.regex,
+    caseSensitive: search.caseSensitive,
+    accentInsensitive: !search.regex,
+  });
+  if (res.error) {
+    el("results").innerHTML = `<div class="res-info error">${res.error}</div>`;
+    return;
+  }
+  renderResults(res.results, res.scanned);
+}
+
+function clearSearch() {
+  state.search = null;
+  state.searchRe = null;
+  el("results").innerHTML = "";
+  el("tabResults").textContent = "Résultats";
+  el("treeTabs").classList.add("hidden");
+  showLeft("tree");
+  if (state.node && state.bytes) setMode(state.mode); // retire le surlignage
+}
+
+function renderResults(list, scanned) {
+  el("tabResults").textContent = `Résultats (${list.length})`;
+  const box = el("results");
+  box.innerHTML = "";
+  const info = document.createElement("div");
+  info.className = "res-info";
+  info.textContent = list.length
+    ? `${list.length} fichier(s) — ${scanned.toLocaleString("fr")} analysés`
+    : `Aucun résultat — ${scanned.toLocaleString("fr")} fichiers analysés`;
+  box.appendChild(info);
+
+  for (const r of list) {
+    const node = state.resultNodes.get(r.fos_path);
+    const slash = r.fos_path.lastIndexOf("/");
+    const item = document.createElement("div");
+    item.className = "res-item";
+    item.innerHTML =
+      '<div class="res-head"><span class="res-name"></span> <span class="res-dir"></span>' +
+      `<span class="res-count">${r.count}×</span></div><div class="res-snippet"></div>`;
+    item.querySelector(".res-name").textContent = slash >= 0 ? r.fos_path.slice(slash + 1) : r.fos_path;
+    item.querySelector(".res-dir").textContent = slash >= 0 ? r.fos_path.slice(0, slash) : "";
+    item.querySelector(".res-snippet").textContent = r.line;
+    item.addEventListener("click", () => {
+      markSelected(item);
+      selectFile(node, node.smaky_ext === "typo" ? "typo-src" : undefined);
+    });
+    box.appendChild(item);
+  }
+}
+
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+function buildHighlightRegex(query, opts) {
+  try {
+    if (opts.regex) return new RegExp(query, opts.caseSensitive ? "g" : "gi");
+    let pat = escapeRe(query);
+    const cls = { a: "[aàâä]", e: "[eéèêë]", i: "[iîï]", o: "[oôö]", u: "[uùûü]", c: "[cç]" };
+    pat = pat.replace(/[aeiouc]/gi, (ch) => cls[ch.toLowerCase()] || ch);
+    return new RegExp(pat, opts.caseSensitive ? "g" : "gi");
+  } catch { return null; }
+}
+
+// Surligne (<mark>) les correspondances dans tous les nœuds texte d'un conteneur.
+function highlightDOM(root, re) {
+  if (!re) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  let t;
+  while ((t = walker.nextNode()))
+    if (t.parentNode && t.parentNode.nodeName !== "MARK" && t.nodeValue.trim()) nodes.push(t);
+  for (const node of nodes) {
+    const s = node.nodeValue;
+    re.lastIndex = 0;
+    if (!re.test(s)) continue;
+    re.lastIndex = 0;
+    const frag = document.createDocumentFragment();
+    let last = 0, m;
+    while ((m = re.exec(s))) {
+      if (m.index > last) frag.appendChild(document.createTextNode(s.slice(last, m.index)));
+      const mk = document.createElement("mark");
+      mk.textContent = m[0] || "";
+      frag.appendChild(mk);
+      last = m.index + m[0].length;
+      if (m[0].length === 0) re.lastIndex++;
+    }
+    if (last < s.length) frag.appendChild(document.createTextNode(s.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  }
 }
