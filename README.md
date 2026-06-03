@@ -78,14 +78,33 @@ Puis « Ouvrir un dossier extrait… » et choisir le dossier produit en phase 1
 Depuis `viewer/`, avec [electron-builder](https://www.electron.build/) :
 
 ```bash
-npm run dist:win      # Windows : installateur NSIS + version portable
-npm run dist:linux    # Linux : AppImage + .deb (à lancer sous Linux ou WSL)
-npm run dist:mac      # macOS : .dmg (à lancer sous macOS uniquement)
+npm run dist:win        # Windows : installateur NSIS + version portable
+npm run dist:linux      # Linux : AppImage + .deb + tar.gz  (à lancer SOUS Linux)
+npm run dist:linux:tar  # Linux : tar.gz seul  (constructible aussi sous Windows)
+npm run dist:mac        # macOS : .dmg  (à lancer sous macOS uniquement)
 ```
 
-Les artefacts sont produits dans `viewer/dist/` (ignoré par git). Chaque cible se
-construit sur le système d'exploitation correspondant : Windows pour les `.exe`,
-Linux/WSL pour AppImage/deb, et **macOS est requis pour produire une version Mac**.
+Les artefacts sont produits dans `viewer/dist/` (ignoré par git).
+
+**Important — contrainte de plateforme.** Chaque format se construit sur le système
+correspondant :
+
+- l'**AppImage** et le **.deb** nécessitent des outils Linux (`mksquashfs`, `dpkg`) :
+  ils ne se construisent **pas** sous Windows (l'étape échoue après `linux-unpacked`).
+  Construis-les **sous Linux** (machine Linux ou **WSL** : installer Node, p. ex. via
+  `nvm`, puis `npm install` et `npm run dist:linux`) ;
+- le **`tar.gz`** ne fait qu'archiver l'application : il se construit **partout**, y
+  compris sous Windows (`npm run dist:linux:tar`) ;
+- **macOS** est requis pour produire une version Mac.
+
+### Tester / lancer sous Linux (ex. Zorin OS, GNOME)
+
+- **AppImage** : `chmod +x "Navigateur Smaky-0.1.0.AppImage"` puis double-clic (ou
+  `./Navigateur\ Smaky-0.1.0.AppImage`). Si le lancement échoue faute de FUSE :
+  `sudo apt install libfuse2`, ou lancer avec `--appimage-extract-and-run`.
+- **tar.gz** : extraire l'archive, puis exécuter le binaire `smaky-viewer` du dossier.
+- **Depuis les sources** (le plus simple pour un test) : copier le dossier `viewer/`,
+  puis `npm install` et `npm start`.
 
 ## Licence
 

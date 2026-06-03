@@ -9,6 +9,7 @@
     "dist": "electron-builder",
     "dist:win": "electron-builder --win",
     "dist:linux": "electron-builder --linux",
+    "dist:linux:tar": "electron-builder --linux tar.gz",
     "dist:mac": "electron-builder --mac"
   },
   "author": "Pierre-Yves Rochat",
@@ -31,7 +32,7 @@
       "package.json"
     ],
     "win": { "target": ["nsis", "portable"] },
-    "linux": { "target": ["AppImage", "deb"], "category": "Utility" },
+    "linux": { "target": ["AppImage", "deb", "tar.gz"], "category": "Utility" },
     "mac": { "target": ["dmg"], "category": "public.app-category.utilities" }
   }
 }
