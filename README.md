@@ -97,14 +97,53 @@ correspondant :
   compris sous Windows (`npm run dist:linux:tar`) ;
 - **macOS** est requis pour produire une version Mac.
 
-### Tester / lancer sous Linux (ex. Zorin OS, GNOME)
+### Installer / lancer sous Linux (ex. Zorin OS, GNOME)
 
-- **AppImage** : `chmod +x "Navigateur Smaky-0.1.0.AppImage"` puis double-clic (ou
-  `./Navigateur\ Smaky-0.1.0.AppImage`). Si le lancement échoue faute de FUSE :
-  `sudo apt install libfuse2`, ou lancer avec `--appimage-extract-and-run`.
-- **tar.gz** : extraire l'archive, puis exécuter le binaire `smaky-viewer` du dossier.
-- **Depuis les sources** (le plus simple pour un test) : copier le dossier `viewer/`,
-  puis `npm install` et `npm start`.
+Trois formats sont produits ; choisis selon l'usage.
+
+| Format | Pour qui | Intégration au menu | Multi-distribution |
+|--------|----------|---------------------|--------------------|
+| **AppImage** | tout le monde, « ça marche » | non (sauf script ci-dessous) | ✅ oui |
+| **.deb** | Debian / Ubuntu / Zorin / Mint | ✅ automatique | ❌ non |
+| **tar.gz** | usage technique, archivage | non | ✅ oui |
+
+- **AppImage** — un seul fichier portable, aucune installation ni droits root :
+  ```bash
+  chmod +x "Navigateur Smaky-0.2.0.AppImage"
+  ./"Navigateur Smaky-0.2.0.AppImage"
+  ```
+  Si le lancement échoue faute de FUSE : `sudo apt install libfuse2`, ou ajouter
+  l'option `--appimage-extract-and-run`.
+
+- **.deb** — installation intégrée (menu, icône, désinstallation propre) sur les
+  distributions à base Debian :
+  ```bash
+  sudo apt install ./smaky-viewer_0.2.0_amd64.deb   # ou double-clic
+  sudo apt remove smaky-viewer                       # désinstallation
+  ```
+
+- **tar.gz** — simple archive : extraire, puis exécuter le binaire `smaky-viewer`
+  du dossier obtenu. Aucune intégration au système.
+
+- **Depuis les sources** (le plus simple pour un test rapide) : dans `viewer/`,
+  `npm install` puis `npm start`.
+
+#### Ajouter un lanceur au menu (AppImage)
+
+L'AppImage n'apparaît pas d'elle-même dans le menu des applications. Le script
+[`viewer/install-desktop-linux.sh`](viewer/install-desktop-linux.sh) crée l'entrée
+de menu et installe l'icône, au niveau utilisateur (sans sudo) :
+
+```bash
+cd viewer
+./install-desktop-linux.sh                 # détecte l'AppImage dans dist/
+./install-desktop-linux.sh /chemin/App.AppImage   # ou chemin explicite
+./install-desktop-linux.sh --uninstall     # retire le lanceur
+```
+
+Il écrit `~/.local/share/applications/smaky-viewer.desktop` et copie l'icône dans
+`~/.local/share/icons/`. Cherche ensuite « Navigateur Smaky » dans le menu (au
+besoin, ferme/rouvre la session pour rafraîchir le cache d'icônes).
 
 ## Licence
 
@@ -121,6 +160,8 @@ tools/
 viewer/              application Electron (navigateur, rapports, visualiseurs)
   main.js, preload.js, package.json
   renderer/          interface (HTML/CSS/JS) + décodeurs de formats Smaky
+  build/             icône de l'application (icon.svg source + icon.png)
+  install-desktop-linux.sh   crée un lanceur GNOME/freedesktop (AppImage)
 docs/
   extraction-phase1.md   mode d'emploi détaillé de la phase 1
   format-typo.md         notes sur le format de composition Typo
