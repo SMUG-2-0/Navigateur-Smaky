@@ -27,6 +27,12 @@ node_modules/
 dist/
 out/
 
+# Fichiers de sauvegarde d'éditeur
+*.bak
+
+# Galerie de rendus .PLAN régénérable (cf. tools/planrender.py)
+test_plan/render/
+
 # Systèmes
 .DS_Store
 Thumbs.db

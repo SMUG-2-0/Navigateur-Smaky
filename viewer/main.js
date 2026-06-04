@@ -17,6 +17,17 @@ const path = require("path");
 
 let currentRoot = null; // dossier extrait actuellement ouvert (contient manifest.json + tree/)
 
+// Petite configuration persistante (dernier dossier ouvert, etc.).
+const configFile = () => path.join(app.getPath("userData"), "config.json");
+async function readConfig() {
+  try { return JSON.parse(await fs.readFile(configFile(), "utf-8")); }
+  catch { return {}; }
+}
+async function writeConfig(obj) {
+  try { await fs.writeFile(configFile(), JSON.stringify(obj, null, 2), "utf-8"); }
+  catch { /* non bloquant */ }
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
@@ -47,7 +58,26 @@ ipcMain.handle("pick-folder", async () => {
     return { error: "manifest.json introuvable dans ce dossier." };
   }
   currentRoot = folder;
+  await writeConfig({ ...(await readConfig()), lastFolder: folder }); // mémorise sans écraser le reste
   return { root: folder };
+});
+
+// Lecture / écriture (fusion) de la configuration persistante.
+ipcMain.handle("get-config", async () => readConfig());
+ipcMain.handle("set-config", async (_evt, patch) => {
+  const next = { ...(await readConfig()), ...(patch || {}) };
+  await writeConfig(next);
+  return next;
+});
+
+// Rouvre le dernier dossier mémorisé (s'il existe encore et contient manifest.json).
+ipcMain.handle("open-last", async () => {
+  const { lastFolder } = await readConfig();
+  if (!lastFolder) return null;
+  try { await fs.access(path.join(lastFolder, "manifest.json")); }
+  catch { return null; }
+  currentRoot = lastFolder;
+  return { root: lastFolder };
 });
 
 // Charge et renvoie le manifeste (objet JSON).

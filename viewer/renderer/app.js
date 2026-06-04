@@ -1,7 +1,8 @@
 import { decodeSmakyText, textRatio } from "./decoders/smakytext.js";
 import { renderTypoReadableHTML, renderTypoSourceHTML } from "./decoders/typo.js";
 import { decodeImage } from "./decoders/smakyimage.js";
-import { computeReport, formatReport } from "./report.js";
+import { decodePlan, planToSVG } from "./decoders/smakyplan.js";
+import { computeReport, formatReport, smakyExt } from "./report.js";
 
 // Extensions considérées comme du texte par défaut (sinon : affichage hexa).
 const TEXT_EXTS = new Set([
@@ -11,7 +12,7 @@ const TEXT_EXTS = new Set([
 const HEX_LIMIT = 64 * 1024; // octets affichés en mode hexa
 
 const el = (id) => document.getElementById(id);
-const state = { manifest: null, node: null, bytes: null, mode: "text", currentDir: null };
+const state = { manifest: null, node: null, bytes: null, mode: "text", currentDir: null, dualRatio: 50, imageIndex: null };
 
 // Affiche la version de l'application dans l'en-tête.
 window.api.getVersion().then((v) => { el("appVersion").textContent = "v" + v; });
@@ -24,16 +25,30 @@ async function openFolder() {
   const res = await window.api.pickFolder();
   if (!res) return;
   if (res.error) { showError(res.error); return; }
-  el("folderPath").textContent = res.root;
+  await loadManifestInto(res.root);
+}
+
+// Rouvre automatiquement le dernier dossier (mémorisé entre sessions).
+async function openLastFolder() {
+  const res = await window.api.openLast();
+  if (res && res.root) await loadManifestInto(res.root);
+}
+
+// Charge le manifeste du dossier déjà sélectionné côté principal et met à jour l'UI.
+async function loadManifestInto(root) {
+  el("folderPath").textContent = root;
   const m = await window.api.readManifest();
   if (m.error) { showError(m.error); return; }
   state.manifest = m.manifest;
   state.currentDir = null;
+  state.imageIndex = null; // sera reconstruit pour ce disque
   el("reportBtn").disabled = false;
   el("extBtn").disabled = false;
   el("textSearch").disabled = false;
+  el("searchBtn").disabled = false;
   el("optCase").disabled = false;
   el("optRegex").disabled = false;
+  el("optName").disabled = false;
   resetFilter();
   resetSearch();
   buildExtList();
@@ -43,6 +58,16 @@ async function openFolder() {
     `<p class="placeholder">Disque chargé : ${s.dirs || 0} dossiers, ` +
     `${s.files || 0} fichiers. Sélectionne un fichier à gauche.</p>`;
 }
+
+// Au lancement : restaure les préférences (ratio du dual view) puis le dernier dossier.
+async function restoreSession() {
+  try {
+    const cfg = await window.api.getConfig();
+    if (cfg && typeof cfg.dualRatio === "number") state.dualRatio = cfg.dualRatio;
+  } catch { /* config indisponible : valeurs par défaut */ }
+  await openLastFolder();
+}
+restoreSession();
 
 // --- Arbre (rendu paresseux) ----------------------------------------------
 
@@ -60,7 +85,7 @@ const filterActive = () => filter.exts.size > 0;
 
 function fileVisible(node) {
   if (!filterActive()) return true;
-  const e = node.smaky_ext || "(sans)";
+  const e = smakyExt(node);
   return filter.mode === "include" ? filter.exts.has(e) : !filter.exts.has(e);
 }
 
@@ -114,7 +139,7 @@ function makeNode(node) {
   if (node.type === "file" && node.smaky_ext) {
     const b = document.createElement("span");
     b.className = "badge";
-    b.textContent = node.smaky_ext;
+    b.textContent = smakyExt(node);
     row.appendChild(b);
   }
   li.appendChild(row);
@@ -177,15 +202,20 @@ function showMeta(node) {
 
 const MODES = {
   image:       { label: "Image",   render: renderImage },
+  plan:        { label: "Plan",    render: renderPlan },
   text:        { label: "Texte",   render: renderText },
   "typo-read": { label: "Lecture", render: (b) => renderHTMLView(renderTypoReadableHTML(b), b, "rendu indicatif") },
   "typo-src":  { label: "Source",  render: (b) => renderHTMLView(renderTypoSourceHTML(b), b) },
+  "typo-dual": { label: "Source + Lecture", render: renderTypoDual },
+  assoc:       { label: "Fichiers associés", render: renderAssoc },
   hex:         { label: "Hexa",    render: renderHex },
 };
 
 function modesForNode(node, bytes) {
+  if (isAssoc(node)) return ["assoc", "text", "hex"]; // manifeste « nom!type »
   if (node.smaky_ext === "image" || node.smaky_ext === "color") return ["image", "hex"];
-  if (node.smaky_ext === "typo") return ["typo-read", "typo-src", "hex"];
+  if (node.smaky_ext === "plan") return ["plan", "hex"];
+  if (node.smaky_ext === "typo") return ["typo-read", "typo-src", "typo-dual", "hex"];
   const looksText = TEXT_EXTS.has(node.smaky_ext) || textRatio(bytes) > 0.85;
   return looksText ? ["text", "hex"] : ["hex", "text"];
 }
@@ -211,10 +241,16 @@ function setMode(mode) {
   el("viewerToolbar").querySelectorAll("button").forEach((b) =>
     b.classList.toggle("active", b.dataset.mode === mode));
   if (!state.bytes) return;
+  el("content").className = "content"; // repart d'un état propre (retire content--split, etc.)
   MODES[mode].render(state.bytes);
   // Surligne les correspondances de recherche dans les modes texte.
-  if (state.searchRe && ["text", "typo-read", "typo-src"].includes(mode))
+  if (state.searchRe && ["text", "typo-read", "typo-src", "typo-dual"].includes(mode))
     highlightDOM(el("content"), state.searchRe);
+  // Réapplique la recherche Ctrl-F au nouveau contenu si la barre est ouverte.
+  if (findVisible()) runFind();
+  // Affiche les images référencées dans le rendu Typo (asynchrone).
+  if (["typo-read", "typo-dual"].includes(mode) && state.node)
+    hydrateFigures(el("content"), state.node);
 }
 
 function renderText(bytes) {
@@ -224,10 +260,116 @@ function renderText(bytes) {
   el("viewerNote").textContent = `${bytes.length.toLocaleString("fr")} octets`;
 }
 
+// Fichier d'association Smaky « nom!type » : repéré par un « ! » dans le nom.
+function isAssoc(node) {
+  return node.type === "file" && !!node.name && node.name.includes("!");
+}
+
+// Retrouve un nœud de l'arbre par son chemin FOS (recherche unique, pas de hot loop).
+function findNodeByPath(path) {
+  let found = null;
+  (function walk(ns) {
+    for (const n of ns) {
+      if (found) return;
+      if (n.fos_path === path) { found = n; return; }
+      if (n.children) walk(n.children);
+    }
+  })(state.manifest.tree || []);
+  return found;
+}
+
+// Mode « Fichiers associés » : affiche la liste des fichiers liés, chacun cliquable
+// pour ouvrir le fichier correspondant (résolu dans le même dossier).
+function renderAssoc(bytes) {
+  const lines = decodeSmakyText(bytes).split("\n").map((s) => s.trim()).filter(Boolean);
+
+  // Frères du fichier d'association = enfants de son dossier parent.
+  const parentPath = state.node.fos_path.split("/").slice(0, -1).join("/");
+  const parent = parentPath ? findNodeByPath(parentPath) : { children: state.manifest.tree };
+  const byName = new Map();
+  for (const c of (parent && parent.children) || [])
+    if (c.type === "file") byName.set(c.name.toLowerCase(), c);
+
+  const wrap = document.createElement("div");
+  wrap.className = "assoc-view";
+  const head = document.createElement("p");
+  head.className = "assoc-head";
+  head.textContent = `Fichier d'association — ${lines.length} fichier(s) lié(s) :`;
+  wrap.appendChild(head);
+
+  const ul = document.createElement("ul");
+  ul.className = "assoc-list";
+  for (const line of lines) {
+    const baseName = line.split("/")[0].trim();        // retire l'attribut /D, /M, etc.
+    const target = byName.get(baseName.toLowerCase());
+    const li = document.createElement("li");
+    const isSelf = target && target.fos_path === state.node.fos_path;
+    if (target && !isSelf) {
+      const a = document.createElement("a");
+      a.className = "assoc-link";
+      a.href = "#";
+      a.textContent = line;
+      a.addEventListener("click", (e) => { e.preventDefault(); selectFile(target); });
+      li.appendChild(a);
+    } else {
+      li.className = "assoc-plain";
+      li.textContent = isSelf ? `${line}  (ce fichier)` : `${line}  (non trouvé dans ce dossier)`;
+    }
+    ul.appendChild(li);
+  }
+  wrap.appendChild(ul);
+  setContent(wrap);
+  el("viewerNote").textContent = `${bytes.length.toLocaleString("fr")} octets`;
+}
+
 function renderHTMLView(html, bytes, note) {
   el("content").innerHTML = html;
   el("viewerNote").textContent =
     `${bytes.length.toLocaleString("fr")} octets` + (note ? ` — ${note}` : "");
+}
+
+// Mode « Source + Lecture » : les deux rendus côte à côte, défilement indépendant,
+// séparation ajustable par glisser-déposer de la poignée centrale.
+function renderTypoDual(bytes) {
+  el("content").classList.add("content--split");
+  const wrap = document.createElement("div");
+  wrap.className = "typo-dual";
+  const pane = (title, inner) => {
+    const p = document.createElement("div");
+    p.className = "dual-pane";
+    p.innerHTML = `<div class="dual-title">${title}</div>${inner}`;
+    return p;
+  };
+  const left = pane("Source", renderTypoSourceHTML(bytes));
+  const right = pane("Lecture", renderTypoReadableHTML(bytes));
+  const divider = document.createElement("div");
+  divider.className = "dual-divider";
+  divider.title = "Glisser pour ajuster";
+  left.style.flex = `0 0 ${state.dualRatio}%`;
+  right.style.flex = "1 1 0";
+
+  divider.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    const move = (ev) => {
+      const r = wrap.getBoundingClientRect();
+      const pct = Math.max(15, Math.min(85, ((ev.clientX - r.left) / r.width) * 100));
+      state.dualRatio = pct;             // mémorisé pour les fichiers suivants
+      left.style.flex = `0 0 ${pct}%`;
+    };
+    const up = () => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      document.body.style.cursor = "";
+      window.api.setConfig({ dualRatio: state.dualRatio }); // mémorise entre sessions
+    };
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+    document.body.style.cursor = "col-resize";
+  });
+
+  wrap.append(left, divider, right);
+  setContent(wrap);
+  el("viewerNote").textContent = `${bytes.length.toLocaleString("fr")} octets — source ↔ rendu`;
 }
 
 function renderImage(bytes) {
@@ -267,6 +409,163 @@ function renderImage(bytes) {
   content.append(bar, wrap);
   apply();
   el("viewerNote").textContent = `${img.width}×${img.height}, ${img.bpp} bpp`;
+}
+
+// --- Dessins vectoriels .PLAN ----------------------------------------------
+
+function renderPlan(bytes) {
+  const content = el("content");
+  content.innerHTML = "";
+  const dec = decodePlan(bytes);
+  if (!dec) {
+    content.innerHTML = '<p class="error">Dessin .plan vide ou non décodable. Essaie le mode Hexa.</p>';
+    el("viewerNote").textContent = "";
+    return;
+  }
+  const wDisp = (dec.x1 - dec.x0) / 4, hDisp = (dec.y1 - dec.y0) / 4;
+  let scale = Math.min(6, Math.max(1, Math.floor(240 / Math.max(1, Math.min(wDisp, hDisp))) || 1));
+  const wrap = document.createElement("div");
+  wrap.className = "plan-wrap";
+  const bar = document.createElement("div");
+  bar.className = "img-zoom";
+  const apply = () => {
+    wrap.innerHTML = planToSVG(dec, { scale });
+    bar.querySelectorAll("button").forEach((b) => b.classList.toggle("active", +b.dataset.s === scale));
+  };
+  for (const s of [1, 2, 4, 6]) {
+    const b = document.createElement("button");
+    b.textContent = "×" + s;
+    b.dataset.s = s;
+    b.addEventListener("click", () => { scale = s; apply(); });
+    bar.appendChild(b);
+  }
+  content.append(bar, wrap);
+  apply();
+  el("viewerNote").textContent =
+    `${dec.prims.length} éléments — ${Math.round(wDisp)}×${Math.round(hDisp)}`;
+}
+
+// Index { nom_de_base -> [nœuds .plan] }, construit une fois par disque.
+function buildPlanIndex() {
+  const idx = new Map();
+  (function walk(ns) {
+    for (const n of ns) {
+      if (n.type === "dir") walk(n.children || []);
+      else if (n.type === "file" && n.smaky_ext === "plan") {
+        const dot = n.name.lastIndexOf(".");
+        const base = (dot > 0 ? n.name.slice(0, dot) : n.name).toLowerCase();
+        if (!idx.has(base)) idx.set(base, []);
+        idx.get(base).push(n);
+      }
+    }
+  })(state.manifest.tree || []);
+  return idx;
+}
+
+// Résout une référence de figure \figplan vers un nœud .plan (même logique que
+// resolveFigure : on préfère le dossier courant, on renonce si ambigu).
+function resolvePlanFigure(ref, currentDir) {
+  if (!ref) return null;
+  let base = ref.includes(":") ? ref.slice(ref.lastIndexOf(":") + 1) : ref;
+  base = base.trim().toLowerCase();
+  if (!base || base.includes("%")) return null;
+  state.planIndex = state.planIndex || buildPlanIndex();
+  const cands = state.planIndex.get(base);
+  if (!cands || !cands.length) return null;
+  const same = cands.find((n) => n.fos_path.slice(0, n.fos_path.lastIndexOf("/")) === currentDir);
+  if (same) return same;
+  return cands.length === 1 ? cands[0] : null;
+}
+
+// --- Images dans le rendu Typo (\image …) ----------------------------------
+
+// Décode des octets image/color en un canvas (ou null si indécodable).
+function decodedCanvas(bytes, ext) {
+  const img = decodeImage(bytes, ext);
+  if (!img) return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  canvas.getContext("2d").putImageData(new ImageData(img.rgba, img.width, img.height), 0, 0);
+  return { canvas, img };
+}
+
+// Index { nom_de_base -> [nœuds image/color] } construit une fois par disque.
+function buildImageIndex() {
+  const idx = new Map();
+  (function walk(ns) {
+    for (const n of ns) {
+      if (n.type === "dir") walk(n.children || []);
+      else if (n.type === "file" && (n.smaky_ext === "image" || n.smaky_ext === "color")) {
+        const dot = n.name.lastIndexOf(".");
+        const base = (dot > 0 ? n.name.slice(0, dot) : n.name).toLowerCase();
+        if (!idx.has(base)) idx.set(base, []);
+        idx.get(base).push(n);
+      }
+    }
+  })(state.manifest.tree || []);
+  return idx;
+}
+
+// Résout une référence de figure (« schema », « @LEYLA:ART:ABUS_1 ») vers un nœud image.
+// Préfère le dossier courant ; si plusieurs candidats ailleurs, renonce (ambigu).
+function resolveFigure(ref, currentDir) {
+  if (!ref) return null;
+  let base = ref.includes(":") ? ref.slice(ref.lastIndexOf(":") + 1) : ref;
+  base = base.trim().toLowerCase();
+  if (!base || base.includes("%")) return null; // paramètre de macro non résolu
+  state.imageIndex = state.imageIndex || buildImageIndex();
+  const cands = state.imageIndex.get(base);
+  if (!cands || !cands.length) return null;
+  const same = cands.find((n) => n.fos_path.slice(0, n.fos_path.lastIndexOf("/")) === currentDir);
+  if (same) return same;
+  return cands.length === 1 ? cands[0] : null;
+}
+
+// Remplace les placeholders « .t-fig » par l'image décodée, quand elle est trouvée.
+async function hydrateFigures(container, node) {
+  const figEls = [...container.querySelectorAll(".t-fig[data-fig]")];
+  if (!figEls.length) return;
+  const currentDir = node.fos_path.slice(0, node.fos_path.lastIndexOf("/"));
+  for (const figEl of figEls) {
+    if (state.node !== node) return; // l'utilisateur a changé de fichier : on abandonne
+    const ref = figEl.dataset.fig;
+
+    // 1) Image réelle (\image, .image/.color). En cas d'échec, on tente le .plan.
+    const target = resolveFigure(ref, currentDir);
+    if (target) {
+      const res = await window.api.readFile(target.fos_path);
+      const dec = (!res.error && res.bytes)
+        ? decodedCanvas(new Uint8Array(res.bytes), target.smaky_ext) : null;
+      if (dec) {
+        const sc = Math.min(4, Math.max(1, Math.floor(120 / Math.min(dec.img.width, dec.img.height)) || 1));
+        dec.canvas.className = "t-fig-canvas";
+        dec.canvas.style.width = dec.img.width * sc + "px";
+        dec.canvas.style.height = dec.img.height * sc + "px";
+        const cap = document.createElement("div");
+        cap.className = "t-fig-cap";
+        cap.textContent = `${ref} — ${dec.img.width}×${dec.img.height}`;
+        figEl.classList.add("t-fig--img");
+        figEl.innerHTML = "";
+        figEl.append(dec.canvas, cap);
+        continue;
+      }
+    }
+
+    // 2) Dessin vectoriel (\figplan, .plan).
+    const ptarget = resolvePlanFigure(ref, currentDir);
+    if (!ptarget) continue; // non résolue : on garde le placeholder texte
+    const pres = await window.api.readFile(ptarget.fos_path);
+    if (pres.error || !pres.bytes) continue;
+    const pdec = decodePlan(new Uint8Array(pres.bytes));
+    if (!pdec) continue;
+    const cap = document.createElement("div");
+    cap.className = "t-fig-cap";
+    cap.textContent = `${ref} — plan (${pdec.prims.length} éléments)`;
+    figEl.classList.add("t-fig--plan");
+    figEl.innerHTML = planToSVG(pdec, { scale: 2 });
+    figEl.append(cap);
+  }
 }
 
 function renderHex(bytes) {
@@ -509,15 +808,51 @@ function mdToHTML(md) {
 // --- Recherche plein-texte (M3) --------------------------------------------
 
 const SEARCH_EXTS = new Set([...TEXT_EXTS, "typo"]);
-const search = { caseSensitive: false, regex: false };
+const search = { caseSensitive: false, regex: false, byName: false };
 
-el("optCase").addEventListener("click", () => toggleOpt("optCase", "caseSensitive"));
-el("optRegex").addEventListener("click", () => toggleOpt("optRegex", "regex"));
-function toggleOpt(id, key) {
-  search[key] = !search[key];
-  el(id).classList.toggle("active", search[key]);
-  if (el("textSearch").value.trim()) runSearch();
+el("optCase").addEventListener("change", () => setOpt("caseSensitive", el("optCase").checked));
+el("optRegex").addEventListener("change", () => setOpt("regex", el("optRegex").checked));
+el("optName").addEventListener("change", () => setOpt("byName", el("optName").checked));
+
+// Construit un test de correspondance (non global) pour les noms de fichiers.
+function nameMatcher(query, opts) {
+  if (opts.regex) {
+    try { return new RegExp(query, opts.caseSensitive ? "" : "i"); } catch { return null; }
+  }
+  let pat = escapeRe(query);
+  const cls = { a: "[aàâä]", e: "[eéèêë]", i: "[iîï]", o: "[oôö]", u: "[uùûü]", c: "[cç]" };
+  pat = pat.replace(/[aeiouc]/gi, (ch) => cls[ch.toLowerCase()] || ch);
+  try { return new RegExp(pat, opts.caseSensitive ? "" : "i"); } catch { return null; }
 }
+
+// Recherche par nom de fichier : tous les fichiers visibles dont le nom correspond.
+function searchByFilename(query) {
+  const matcher = nameMatcher(query, search);
+  const matches = [];
+  if (matcher) (function w(ns) {
+    for (const n of ns) {
+      if (n.type === "dir") w(n.children || []);
+      else if (n.type === "file" && fileVisible(n)) {
+        const nm = n.name || n.fos_path.slice(n.fos_path.lastIndexOf("/") + 1);
+        if (matcher.test(nm)) matches.push(n);
+      }
+    }
+  })(state.manifest.tree || []);
+  state.resultNodes = new Map(matches.map((n) => [n.fos_path, n]));
+  state.search = { query, ...search };
+  state.searchRe = null;                       // pas de surlignage de contenu
+  el("treeTabs").classList.remove("hidden");
+  showLeft("results");
+  renderResults(matches.map((n) => ({
+    fos_path: n.fos_path, count: 1,
+    line: `${n.smaky_ext || "?"} — ${(n.size || 0).toLocaleString("fr")} o`,
+  })), matches.length);
+}
+function setOpt(key, val) {
+  search[key] = val;
+  if (el("textSearch").value.trim()) runSearch(); // relance si une recherche est en cours
+}
+el("searchBtn").addEventListener("click", () => runSearch());
 el("textSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") runSearch(); });
 el("textSearch").addEventListener("search", () => { if (!el("textSearch").value.trim()) clearSearch(); });
 
@@ -532,6 +867,12 @@ function showLeft(which) {
 
 function resetSearch() {
   el("textSearch").value = "";
+  search.caseSensitive = false;
+  search.regex = false;
+  search.byName = false;
+  el("optCase").checked = false;
+  el("optRegex").checked = false;
+  el("optName").checked = false;
   state.search = null;
   state.searchRe = null;
   el("results").innerHTML = "";
@@ -555,6 +896,8 @@ function gatherSearchCandidates() {
 async function runSearch() {
   const query = el("textSearch").value;
   if (!query.trim()) { clearSearch(); return; }
+
+  if (search.byName) { searchByFilename(query); return; }   // recherche par nom
 
   const candidates = gatherSearchCandidates();
   state.resultNodes = new Map(candidates.map((n) => [n.fos_path, n]));
@@ -659,3 +1002,102 @@ function highlightDOM(root, re) {
     node.parentNode.replaceChild(frag, node);
   }
 }
+
+// --- Recherche dans le fichier courant (Ctrl-F) ----------------------------
+
+const find = { hits: [], idx: -1 };
+const findVisible = () => !el("findBar").classList.contains("hidden");
+
+function openFind() {
+  if (!state.bytes) return;            // aucun fichier affiché
+  el("findBar").classList.remove("hidden");
+  const inp = el("findInput");
+  inp.focus(); inp.select();
+  if (inp.value.trim()) runFind();
+}
+
+function closeFind() {
+  el("findBar").classList.add("hidden");
+  clearFindMarks();
+  find.hits = []; find.idx = -1;
+  el("findCount").textContent = "";
+}
+
+// Retire uniquement les surlignages de Ctrl-F (laisse ceux de la recherche globale).
+function clearFindMarks() {
+  const content = el("content");
+  content.querySelectorAll("mark.find-hit").forEach((m) =>
+    m.replaceWith(document.createTextNode(m.textContent)));
+  content.normalize();
+}
+
+function runFind() {
+  clearFindMarks();
+  find.hits = []; find.idx = -1;
+  const q = el("findInput").value;
+  if (!q.trim()) { el("findCount").textContent = ""; return; }
+  const re = buildHighlightRegex(q, { regex: false, caseSensitive: false });
+  if (!re) { el("findCount").textContent = "—"; return; }
+
+  const content = el("content");
+  const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+  const targets = [];
+  let t;
+  while ((t = walker.nextNode()))
+    if (t.parentNode && t.parentNode.nodeName !== "MARK" && t.nodeValue.trim()) targets.push(t);
+
+  for (const node of targets) {
+    const s = node.nodeValue;
+    re.lastIndex = 0;
+    if (!re.test(s)) continue;
+    re.lastIndex = 0;
+    const frag = document.createDocumentFragment();
+    let last = 0, m;
+    while ((m = re.exec(s))) {
+      if (m.index > last) frag.appendChild(document.createTextNode(s.slice(last, m.index)));
+      const mk = document.createElement("mark");
+      mk.className = "find-hit";
+      mk.textContent = m[0] || "";
+      frag.appendChild(mk);
+      find.hits.push(mk);
+      last = m.index + m[0].length;
+      if (m[0].length === 0) re.lastIndex++;
+    }
+    if (last < s.length) frag.appendChild(document.createTextNode(s.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  }
+
+  if (find.hits.length) setCurrentHit(0);
+  else el("findCount").textContent = "0/0";
+}
+
+function setCurrentHit(i) {
+  if (!find.hits.length) return;
+  if (find.idx >= 0 && find.hits[find.idx]) find.hits[find.idx].classList.remove("find-current");
+  find.idx = (i + find.hits.length) % find.hits.length;
+  const cur = find.hits[find.idx];
+  cur.classList.add("find-current");
+  cur.scrollIntoView({ block: "center", inline: "nearest" });
+  el("findCount").textContent = `${find.idx + 1}/${find.hits.length}`;
+}
+
+function navFind(delta) {
+  if (find.hits.length) setCurrentHit(find.idx + delta);
+}
+
+el("findInput").addEventListener("input", runFind);
+el("findInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); navFind(e.shiftKey ? -1 : 1); }
+  else if (e.key === "Escape") { e.preventDefault(); closeFind(); }
+});
+el("findNext").addEventListener("click", () => navFind(1));
+el("findPrev").addEventListener("click", () => navFind(-1));
+el("findClose").addEventListener("click", closeFind);
+
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === "f" || e.key === "F")) {
+    e.preventDefault(); openFind();
+  } else if (e.key === "Escape" && findVisible()) {
+    closeFind();
+  }
+});
