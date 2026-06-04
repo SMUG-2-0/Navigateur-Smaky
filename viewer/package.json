@@ -1,7 +1,8 @@
 {
   "name": "smaky-viewer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Navigateur et visualiseur de disques Smaky extraits (format FOS)",
+  "homepage": "https://www.epsitec.ch/",
   "main": "main.js",
   "type": "commonjs",
   "scripts": {
@@ -12,7 +13,10 @@
     "dist:linux:tar": "electron-builder --linux tar.gz",
     "dist:mac": "electron-builder --mac"
   },
-  "author": "Pierre-Yves Rochat",
+  "author": {
+    "name": "Pierre-Yves Rochat",
+    "email": "pyr@pyr.ch"
+  },
   "license": "GPL-3.0-or-later",
   "private": true,
   "devDependencies": {
@@ -32,7 +36,7 @@
       "package.json"
     ],
     "win": { "target": ["nsis", "portable"] },
-    "linux": { "target": ["AppImage", "deb", "tar.gz"], "category": "Utility" },
+    "linux": { "target": ["AppImage", "deb", "tar.gz"], "category": "Utility", "maintainer": "Pierre-Yves Rochat <pyr@pyr.ch>" },
     "mac": { "target": ["dmg"], "category": "public.app-category.utilities" }
   }
 }
