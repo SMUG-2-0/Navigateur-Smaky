@@ -145,7 +145,7 @@ Les images de disque et leur contenu sont des données privées — à ne pas di
 
 ## Version et licence
 
-**Navigateur Smaky — version 0.3.0**
+**Navigateur Smaky — version 0.3.1**
 
 © 2026 **Epsitec SA** et **Pierre-Yves Rochat**.
 
