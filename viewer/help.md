@@ -118,6 +118,24 @@ Exemples utiles sur ces disques :
 N'hésite pas à expérimenter : si l'expression est invalide, l'outil te le signale
 sans rien casser.
 
+## Rechercher par date de création (FOS)
+
+La zone **« Dates de création (FOS) »** liste les fichiers selon leur date de
+création d'origine sur le Smaky. Choisis une **période** avec les deux champs
+**Début** et **Fin**, puis clique **« Filtrer »** (la liste se met aussi à jour
+dès qu'une date change). Les deux bornes sont **incluses**.
+
+L'une des deux dates peut rester vide :
+
+- **Début seul** : tout ce qui a été créé **à partir** de cette date ;
+- **Fin seule** : tout ce qui a été créé **jusqu'à** cette date ;
+- **les deux** : la période entre les deux dates.
+
+Le volet gauche bascule sur **« Résultats »**, **triés du plus ancien au plus
+récent**, chacun affichant sa date de création, son type et sa taille. Le filtre
+par type (ci-dessus) est respecté, et les fichiers **sans date** FOS sont
+ignorés. L'onglet **« Arborescence »** ramène à l'arbre.
+
 ## Rechercher dans le fichier affiché (Ctrl-F)
 
 Pour chercher **à l'intérieur du fichier ouvert**, appuie sur **Ctrl-F** (Cmd-F sur
@@ -145,7 +163,7 @@ Les images de disque et leur contenu sont des données privées — à ne pas di
 
 ## Version et licence
 
-**Navigateur Smaky — version 0.3.1**
+**Navigateur Smaky — version 0.4.0**
 
 © 2026 **Epsitec SA** et **Pierre-Yves Rochat**.
 

@@ -9,12 +9,18 @@
 </head>
 <body>
   <header id="topbar">
-    <button id="openDiBtn">💿 Ouvrir une image .DI…</button>
-    <button id="openBtn">📂 Ouvrir un dossier extrait…</button>
-    <button id="reportBtn" disabled>📊 Rapport…</button>
-    <button id="helpBtn">❔ Aide</button>
-    <span id="appVersion" class="muted"></span>
-    <span id="folderPath" class="muted">aucun dossier ouvert</span>
+    <div class="topbar-left">
+      <div class="topbar-actions">
+        <button id="openDiBtn">💿 Ouvrir une image .DI…</button>
+        <button id="openBtn">📂 Ouvrir un dossier extrait…</button>
+        <button id="reportBtn" disabled>📊 Rapport…</button>
+        <button id="helpBtn">❔ Aide</button>
+      </div>
+      <div class="topbar-status">
+        <span id="appVersion" class="muted"></span>
+        <span id="folderPath" class="muted">aucun dossier ouvert</span>
+      </div>
+    </div>
 
     <div class="topzones">
       <div class="zone">
@@ -31,6 +37,24 @@
           <label><input type="checkbox" id="optCase" disabled> Respecter la casse</label>
           <label><input type="checkbox" id="optRegex" disabled> Expression régulière</label>
           <label><input type="checkbox" id="optName" disabled> Dans les noms de fichiers</label>
+        </div>
+      </div>
+      <div class="zone">
+        <label>Dates de création (FOS)</label>
+        <div class="search-row date-row">
+          <span class="date-field">
+            <input id="dateFrom" type="date" title="Début (inclus)" disabled />
+            <button class="date-clear" data-target="dateFrom" title="Effacer la date de début" disabled>✕</button>
+          </span>
+          <span class="date-sep">→</span>
+          <span class="date-field">
+            <input id="dateTo" type="date" title="Fin (incluse)" disabled />
+            <button class="date-clear" data-target="dateTo" title="Effacer la date de fin" disabled>✕</button>
+          </span>
+          <button id="dateBtn" disabled>Filtrer</button>
+        </div>
+        <div class="search-opts">
+          <span class="muted">Un champ vide = sans borne de ce côté</span>
         </div>
       </div>
     </div>

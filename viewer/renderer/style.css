@@ -51,6 +51,12 @@ body { display: flex; flex-direction: column; height: 100vh; }
 #topbar button:disabled:hover { background: var(--accent); color: var(--accent-text); }
 #folderPath { font-family: var(--mono); font-size: 12px; }
 
+/* Groupe de gauche : boutons en haut, version + fichier dessous (texte fin,
+   ne pousse plus les zones de recherche vers le bas). */
+.topbar-left { display: flex; flex-direction: column; gap: 6px; }
+.topbar-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.topbar-status { display: flex; align-items: baseline; gap: 10px; font-size: 12px; }
+
 .topzones { display: flex; gap: 16px; margin-left: auto; }
 .zone { display: flex; flex-direction: column; gap: 2px; }
 .zone label { font-size: 11px; color: var(--muted); }
@@ -62,14 +68,27 @@ body { display: flex; flex-direction: column; height: 100vh; }
 .search-row { display: flex; gap: 4px; }
 .search-row input { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 5px 8px; border-radius: 0; width: 200px; }
 .search-row input:disabled { opacity: .5; }
-/* Bouton « Rechercher » (action principale) */
-#searchBtn {
+/* Boutons d'action principaux (Rechercher / Filtrer par date) */
+#searchBtn, #dateBtn {
   background: var(--accent); color: var(--accent-text); border: 1px solid var(--border);
   padding: 5px 12px; border-radius: 0; cursor: pointer; font-weight: 600; min-width: 0;
 }
-#searchBtn:hover { background: var(--bg); color: var(--text); }
-#searchBtn:disabled { opacity: .45; cursor: default; }
-#searchBtn:disabled:hover { background: var(--accent); color: var(--accent-text); }
+#searchBtn:hover, #dateBtn:hover { background: var(--bg); color: var(--text); }
+#searchBtn:disabled, #dateBtn:disabled { opacity: .45; cursor: default; }
+#searchBtn:disabled:hover, #dateBtn:disabled:hover { background: var(--accent); color: var(--accent-text); }
+/* Plage de dates : les deux champs côte à côte, largeur juste suffisante */
+.date-row { align-items: center; }
+.date-field { display: flex; align-items: stretch; flex: 1; min-width: 0; }
+.date-field input[type="date"] { width: auto; flex: 1; min-width: 0; border-right: 0; }
+.date-sep { color: var(--muted); flex: none; }
+/* Petite croix d'effacement, comme celle des champs de recherche (légère, pas
+   le remplissage noir des boutons d'action). */
+#topbar .date-clear {
+  background: var(--bg); color: var(--muted); border: 1px solid var(--border);
+  padding: 0 6px; min-width: 0; cursor: pointer; font-weight: 400; line-height: 1;
+}
+#topbar .date-clear:hover { background: var(--hover); color: var(--text); }
+#topbar .date-clear:disabled { opacity: .5; cursor: default; }
 /* Cases d'options de recherche */
 .search-opts { display: flex; gap: 14px; margin-top: 4px; font-size: 11px; color: var(--muted); }
 .search-opts label { display: flex; align-items: center; gap: 4px; cursor: pointer; }

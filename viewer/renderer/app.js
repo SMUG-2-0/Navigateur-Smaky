@@ -73,6 +73,10 @@ async function loadManifestInto(root) {
   el("optCase").disabled = false;
   el("optRegex").disabled = false;
   el("optName").disabled = false;
+  el("dateFrom").disabled = false;
+  el("dateTo").disabled = false;
+  el("dateBtn").disabled = false;
+  document.querySelectorAll(".date-clear").forEach((b) => (b.disabled = false));
   resetFilter();
   resetSearch();
   buildExtList();
@@ -925,6 +929,8 @@ function resetSearch() {
   el("optCase").checked = false;
   el("optRegex").checked = false;
   el("optName").checked = false;
+  el("dateFrom").value = "";
+  el("dateTo").value = "";
   state.search = null;
   state.searchRe = null;
   el("results").innerHTML = "";
@@ -985,6 +991,69 @@ function clearSearch() {
   if (state.node && state.bytes) setMode(state.mode); // retire le surlignage
 }
 
+// --- Recherche par date de création FOS ------------------------------------
+//
+// La date d'un fichier est node.created = "YYYY-MM-DD HH:MM" (ou "" si nulle).
+// Les <input type="date"> fournissent les bornes au format "YYYY-MM-DD". On
+// compare la partie « jour » des deux : la comparaison lexicale suffit grâce au
+// format ISO, et les deux bornes sont incluses. Une borne vide = pas de limite
+// de ce côté (Début seul = « après », Fin seule = « avant »).
+
+el("dateBtn").addEventListener("click", () => runDateSearch());
+for (const id of ["dateFrom", "dateTo"]) {
+  el(id).addEventListener("keydown", (e) => { if (e.key === "Enter") runDateSearch(); });
+  el(id).addEventListener("change", () => {
+    if (el("dateFrom").value || el("dateTo").value) runDateSearch();
+  });
+}
+// Petite croix d'effacement à droite de chaque champ de date.
+document.querySelectorAll(".date-clear").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    el(btn.dataset.target).value = "";
+    runDateSearch();   // relance (ou revient à l'arbre si les deux champs sont vides)
+  });
+});
+
+function runDateSearch() {
+  const from = el("dateFrom").value;   // "" ou "YYYY-MM-DD"
+  const to = el("dateTo").value;
+  if (!from && !to) { clearSearch(); return; }
+
+  el("treeTabs").classList.remove("hidden");
+  showLeft("results");
+  if (from && to && from > to) {
+    el("results").innerHTML =
+      `<div class="res-info error">La date de début est postérieure à la date de fin.</div>`;
+    el("tabResults").textContent = "Résultats";
+    return;
+  }
+
+  const matches = [];
+  let scanned = 0;
+  (function w(ns) {
+    for (const n of ns) {
+      if (n.type === "dir") { w(n.children || []); continue; }
+      if (n.type !== "file" || !fileVisible(n)) continue;
+      scanned++;
+      const d = (n.created || "").slice(0, 10);   // jour de création, ou ""
+      if (!d) continue;                            // pas de date FOS : exclu
+      if (from && d < from) continue;
+      if (to && d > to) continue;
+      matches.push(n);
+    }
+  })(state.manifest.tree || []);
+
+  matches.sort((a, b) => (a.created || "").localeCompare(b.created || ""));
+
+  state.resultNodes = new Map(matches.map((n) => [n.fos_path, n]));
+  state.search = { dateFrom: from, dateTo: to };
+  state.searchRe = null;                           // pas de surlignage de contenu
+  renderResults(matches.map((n) => ({
+    fos_path: n.fos_path,
+    line: `${n.created} — ${n.smaky_ext || "?"} — ${(n.size || 0).toLocaleString("fr")} o`,
+  })), scanned);
+}
+
 function renderResults(list, scanned) {
   el("tabResults").textContent = `Résultats (${list.length})`;
   const box = el("results");
@@ -1001,9 +1070,10 @@ function renderResults(list, scanned) {
     const slash = r.fos_path.lastIndexOf("/");
     const item = document.createElement("div");
     item.className = "res-item";
+    const countBadge = r.count != null ? `<span class="res-count">${r.count}×</span>` : "";
     item.innerHTML =
       '<div class="res-head"><span class="res-name"></span> <span class="res-dir"></span>' +
-      `<span class="res-count">${r.count}×</span></div><div class="res-snippet"></div>`;
+      `${countBadge}</div><div class="res-snippet"></div>`;
     item.querySelector(".res-name").textContent = slash >= 0 ? r.fos_path.slice(slash + 1) : r.fos_path;
     item.querySelector(".res-dir").textContent = slash >= 0 ? r.fos_path.slice(0, slash) : "";
     item.querySelector(".res-snippet").textContent = r.line;
