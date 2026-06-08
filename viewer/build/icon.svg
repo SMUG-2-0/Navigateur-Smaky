@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b6cb0"/>
+      <stop offset="1" stop-color="#1a365d"/>
+    </linearGradient>
+    <linearGradient id="folderBack" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6d365"/>
+      <stop offset="1" stop-color="#e6b422"/>
+    </linearGradient>
+    <linearGradient id="folderFront" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fcdf8a"/>
+      <stop offset="1" stop-color="#f0b429"/>
+    </linearGradient>
+    <linearGradient id="sheet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eef2f7"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="14"/>
+      <feOffset dy="12" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.30"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- fond squircle -->
+  <rect x="0" y="0" width="1024" height="1024" rx="228" ry="228" fill="url(#bg)"/>
+
+  <!-- dos du dossier (ouvert) -->
+  <path d="M196 392 h180 l52 60 h360 a40 40 0 0 1 40 40 v300 a40 40 0 0 1 -40 40 H196 a40 40 0 0 1 -40 -40 V432 a40 40 0 0 1 40 -40 z"
+        fill="url(#folderBack)"/>
+
+  <!-- fiche blanche qui depasse du dossier (arborescence) -->
+  <g filter="url(#soft)">
+    <rect x="318" y="250" width="388" height="380" rx="24" ry="24" fill="url(#sheet)"/>
+  </g>
+  <!-- noeud racine -->
+  <rect x="362" y="296" width="150" height="34" rx="10" fill="#1a365d"/>
+  <!-- lignes d'arborescence -->
+  <path d="M384 346 V474 M384 388 H432 M384 448 H432"
+        fill="none" stroke="#9fb3c8" stroke-width="9" stroke-linecap="round"/>
+  <!-- item 1 : image (rouge) -->
+  <rect x="448" y="368" width="40" height="40" rx="9" fill="#e53e3e"/>
+  <rect x="504" y="380" width="150" height="16" rx="8" fill="#cfd8e3"/>
+  <!-- item 2 : texte (vert) -->
+  <rect x="448" y="428" width="40" height="40" rx="9" fill="#38a169"/>
+  <rect x="504" y="440" width="150" height="16" rx="8" fill="#cfd8e3"/>
+
+  <!-- rabat avant du dossier -->
+  <g filter="url(#soft)">
+    <path d="M188 540 h648 a34 34 0 0 1 33 42 l-56 250 a48 48 0 0 1 -47 38 H214 a40 40 0 0 1 -40 -40 V578 a40 40 0 0 1 14 -38 z"
+          fill="url(#folderFront)"/>
+  </g>
+</svg>

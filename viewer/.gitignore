@@ -1,0 +1,9 @@
+# Dépendances (réinstaller avec `npm install`)
+node_modules/
+
+# Sorties de build electron-builder
+dist/
+
+# Logs et divers
+npm-debug.log*
+.DS_Store

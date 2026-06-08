@@ -48,12 +48,18 @@ image .DI ──[ Navigateur Smaky (JS) ]──► dossier (tree/ + manifest.jso
 | 1 | Extraction `.DI` → `tree/` + `manifest.json` (chaîne Python/WSL de référence) | ✅ fait — voir [docs/extraction-phase1.md](docs/extraction-phase1.md) |
 | 2 | Navigateur/visualiseur interactif (Electron) | ✅ fait — voir [`viewer/`](viewer/) |
 | 2b | Lecture FOS portée en JS : ouvrir un `.DI` **directement** dans l'app | ✅ fait — `viewer/fosfat.js` |
+| 2c | Visualiseur de dessins vectoriels `.PLAN` ; Typo enrichi (gras/italique, figures) | ✅ fait — `viewer/renderer/decoders/smakyplan.js` |
 | 3 | Livrables pour la recherche (rapports, exports) | à venir |
 
-L'analyse interactive se fait dans une application **Electron** (`viewer/`) : interface
-de navigation (arbre + visualiseur), génération de rapports, et visualiseurs de
-formats Smaky décodés à la volée (texte ; format Typo — voir
-[docs/format-typo.md](docs/format-typo.md)).
+L'analyse interactive se fait dans une application **Electron** (`viewer/`) : navigation
+(arbre + visualiseur), recherche plein-texte et par nom, rapports, et visualiseurs de
+formats Smaky décodés à la volée :
+
+- **texte** (jeu de caractères Smaky) ;
+- **images** `.IMAGE` / `.COLOR` ;
+- **Typo** (composition typographique) en *Lecture* / *Source* / côte à côte —
+  voir [docs/typo-format.md](docs/typo-format.md) ;
+- **dessins vectoriels `.PLAN`** rendus en SVG — voir [docs/plan-format.md](docs/plan-format.md).
 
 ## Démarrage rapide
 
@@ -113,7 +119,7 @@ construit le `.dmg` sur un runner macOS gratuit de GitHub :
 
 - **manuel** : onglet **Actions** → **Build macOS** → **Run workflow** ; le `.dmg` est
   téléchargeable en bas du run (section *Artifacts*) ;
-- **sur tag** : pousser un tag `vX.Y.Z` (`git tag v0.1.0 && git push origin v0.1.0`)
+- **sur tag** : pousser un tag `vX.Y.Z` (`git tag v0.3.0 && git push origin v0.3.0`)
   construit le `.dmg` **et** crée une *Release* avec le fichier attaché.
 
 Le `.dmg` est **universel** (Intel + Apple Silicon) mais **non signé** (pas de compte
@@ -126,14 +132,53 @@ identifié », voire « endommagée » sur Apple Silicon). Pour l'ouvrir :
 Pour supprimer tout avertissement, il faudrait signer et *notariser* l'app avec un
 compte Apple Developer (99 $/an) — non nécessaire pour un usage interne.
 
-### Tester / lancer sous Linux (ex. Zorin OS, GNOME)
+### Installer / lancer sous Linux (ex. Zorin OS, GNOME)
 
-- **AppImage** : `chmod +x "Navigateur Smaky-0.1.0.AppImage"` puis double-clic (ou
-  `./Navigateur\ Smaky-0.1.0.AppImage`). Si le lancement échoue faute de FUSE :
-  `sudo apt install libfuse2`, ou lancer avec `--appimage-extract-and-run`.
-- **tar.gz** : extraire l'archive, puis exécuter le binaire `smaky-viewer` du dossier.
-- **Depuis les sources** (le plus simple pour un test) : copier le dossier `viewer/`,
-  puis `npm install` et `npm start`.
+Trois formats sont produits ; choisis selon l'usage.
+
+| Format | Pour qui | Intégration au menu | Multi-distribution |
+|--------|----------|---------------------|--------------------|
+| **AppImage** | tout le monde, « ça marche » | non (sauf script ci-dessous) | ✅ oui |
+| **.deb** | Debian / Ubuntu / Zorin / Mint | ✅ automatique | ❌ non |
+| **tar.gz** | usage technique, archivage | non | ✅ oui |
+
+- **AppImage** — un seul fichier portable, aucune installation ni droits root :
+  ```bash
+  chmod +x "Navigateur Smaky-0.3.0.AppImage"
+  ./"Navigateur Smaky-0.3.0.AppImage"
+  ```
+  Si le lancement échoue faute de FUSE : `sudo apt install libfuse2`, ou ajouter
+  l'option `--appimage-extract-and-run`.
+
+- **.deb** — installation intégrée (menu, icône, désinstallation propre) sur les
+  distributions à base Debian :
+  ```bash
+  sudo apt install ./smaky-viewer_0.3.0_amd64.deb   # ou double-clic
+  sudo apt remove smaky-viewer                       # désinstallation
+  ```
+
+- **tar.gz** — simple archive : extraire, puis exécuter le binaire `smaky-viewer`
+  du dossier obtenu. Aucune intégration au système.
+
+- **Depuis les sources** (le plus simple pour un test rapide) : dans `viewer/`,
+  `npm install` puis `npm start`.
+
+#### Ajouter un lanceur au menu (AppImage)
+
+L'AppImage n'apparaît pas d'elle-même dans le menu des applications. Le script
+[`viewer/install-desktop-linux.sh`](viewer/install-desktop-linux.sh) crée l'entrée
+de menu et installe l'icône, au niveau utilisateur (sans sudo) :
+
+```bash
+cd viewer
+./install-desktop-linux.sh                 # détecte l'AppImage dans dist/
+./install-desktop-linux.sh /chemin/App.AppImage   # ou chemin explicite
+./install-desktop-linux.sh --uninstall     # retire le lanceur
+```
+
+Il écrit `~/.local/share/applications/smaky-viewer.desktop` et copie l'icône dans
+`~/.local/share/icons/`. Cherche ensuite « Navigateur Smaky » dans le menu (au
+besoin, ferme/rouvre la session pour rafraîchir le cache d'icônes).
 
 ## Licence
 
@@ -152,6 +197,8 @@ viewer/              application Electron (navigateur, rapports, visualiseurs)
   fosfat.js          lecture du format FOS en JS (ouverture directe des .DI)
   extract-worker.js  extraction dans un thread (interface réactive + progression)
   renderer/          interface (HTML/CSS/JS) + décodeurs de formats Smaky
+  build/             icône de l'application (icon.svg source + icon.png)
+  install-desktop-linux.sh   crée un lanceur GNOME/freedesktop (AppImage)
 docs/
   extraction-phase1.md   mode d'emploi détaillé de la phase 1
   format-typo.md         notes sur le format de composition Typo

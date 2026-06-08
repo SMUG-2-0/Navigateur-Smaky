@@ -24,9 +24,13 @@
       <div class="zone">
         <label>Recherche dans les textes</label>
         <div class="search-row">
-          <input id="textSearch" type="search" placeholder="mot ou expression… (Entrée)" disabled />
-          <button id="optCase" class="opt" title="Respecter la casse" disabled>Aa</button>
-          <button id="optRegex" class="opt" title="Expression régulière (.*)" disabled>.*</button>
+          <input id="textSearch" type="search" placeholder="mot ou expression…" disabled />
+          <button id="searchBtn" disabled>Rechercher</button>
+        </div>
+        <div class="search-opts">
+          <label><input type="checkbox" id="optCase" disabled> Respecter la casse</label>
+          <label><input type="checkbox" id="optRegex" disabled> Expression régulière</label>
+          <label><input type="checkbox" id="optName" disabled> Dans les noms de fichiers</label>
         </div>
       </div>
     </div>
@@ -62,6 +66,14 @@
     </section>
 
     <section id="viewPane" aria-label="Visualisation">
+      <!-- Recherche dans le fichier courant (Ctrl-F) -->
+      <div id="findBar" class="find-bar hidden">
+        <input id="findInput" type="text" placeholder="Rechercher dans le fichier…" />
+        <span id="findCount" class="find-count"></span>
+        <button id="findPrev" class="icon-btn" title="Précédent (Maj+Entrée)">▲</button>
+        <button id="findNext" class="icon-btn" title="Suivant (Entrée)">▼</button>
+        <button id="findClose" class="icon-btn" title="Fermer (Échap)">✕</button>
+      </div>
       <div id="meta" class="meta hidden"></div>
       <div id="viewerToolbar" class="viewer-toolbar hidden">
         <span id="viewerNote" class="muted"></span>

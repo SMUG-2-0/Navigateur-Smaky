@@ -13,6 +13,9 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.on("extract-progress", listener);
     return () => ipcRenderer.removeListener("extract-progress", listener);
   },
+  openLast: () => ipcRenderer.invoke("open-last"),
+  getConfig: () => ipcRenderer.invoke("get-config"),
+  setConfig: (patch) => ipcRenderer.invoke("set-config", patch),
   readManifest: () => ipcRenderer.invoke("read-manifest"),
   // Renvoie { bytes: ArrayBuffer } ou { error }.
   readFile: (fosPath) => ipcRenderer.invoke("read-file", fosPath),

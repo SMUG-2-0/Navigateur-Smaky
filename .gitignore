@@ -31,6 +31,17 @@ out/
 *.AppImage
 *.deb
 
+# Fichiers de sauvegarde d'éditeur
+*.bak
+
+# Galerie de rendus .PLAN régénérable (cf. tools/planrender.py)
+test_plan/render/
+
+# Copie de travail récupérée (dépôt git imbriqué) — ne pas committer
+Navigateur-0-2-0/
+# Raccourcis Windows
+*.lnk
+
 # Systèmes
 .DS_Store
 Thumbs.db

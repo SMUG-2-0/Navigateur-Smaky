@@ -22,6 +22,9 @@ Dans les deux cas, l'arborescence apparaît ensuite à gauche.
 > Conseil : pour aller plus vite, crée le dossier d'extraction sur un disque local
 > plutôt que dans un dossier synchronisé (Dropbox, OneDrive…).
 
+Le programme **mémorise le dernier dossier ouvert** et le **rouvre automatiquement**
+au prochain démarrage.
+
 ## Naviguer dans l'arborescence
 
 - Clique un **dossier** pour le déplier / replier.
@@ -37,9 +40,16 @@ droite :
 - **Hexa** : les octets bruts, utile pour les fichiers binaires.
 - **Image** : pour les fichiers `.image` (noir/blanc) et `.color` (couleur), avec
   des boutons de zoom **×1 ×2 ×4 ×8**.
-- **Lecture** / **Source** : pour les fichiers **Typo** (composition typographique).
-  *Lecture* masque les commandes et montre le texte propre ; *Source* montre le
-  texte avec les commandes `\…` mises en évidence.
+- **Lecture** / **Source** / **Source + Lecture** : pour les fichiers **Typo**
+  (composition typographique). *Lecture* reconstruit la structure (titres, sections
+  numérotées, listes, paragraphes) et masque les commandes ; *Source* montre le texte
+  avec les commandes `\…` mises en évidence ; *Source + Lecture* affiche les deux
+  **côte à côte**, avec une séparation **ajustable** (glisse la poignée centrale) —
+  idéal pour comprendre quelle commande produit quel effet. Les **images** référencées
+  par `\image` sont affichées directement dans la Lecture lorsque le fichier est présent.
+- **Fichiers associés** : pour les fichiers `nom!type` (manifestes Smaky qui listent les
+  fichiers d'un même ensemble, gérés jadis par le programme *Start*). La liste s'affiche,
+  et chaque nom est **cliquable** pour ouvrir le fichier lié.
 
 ## Filtrer par type de fichier
 
@@ -56,21 +66,26 @@ présentes, avec leur nombre de fichiers :
 L'arborescence se met à jour : seuls les dossiers contenant des fichiers
 correspondants restent affichés.
 
+Les fichiers d'association `nom!type` apparaissent sous une catégorie distincte
+préfixée d'un **`!`** (`!typo`, `!code`…), en tête de liste : cocher « typo » ne
+sélectionne donc **pas** les `!typo`.
+
 ## Rechercher dans les textes
 
-Tape un mot dans le champ **« Recherche dans les textes »** et appuie sur
-**Entrée**. Le volet gauche bascule sur **« Résultats »** : la liste des fichiers
-contenant ce mot, avec le nombre d'occurrences et un extrait. Clique un résultat
-pour ouvrir le fichier ; les correspondances sont **surlignées**.
+Tape un mot dans le champ **« Recherche dans les textes »** et clique
+**« Rechercher »** (ou appuie sur **Entrée**). Le volet gauche bascule sur
+**« Résultats »** : la liste des fichiers contenant ce mot, avec le nombre
+d'occurrences et un extrait. Clique un résultat pour ouvrir le fichier ; les
+correspondances sont **surlignées**.
 
 Par défaut, la recherche est **insensible à la casse et aux accents** : taper
 `reseau` trouve aussi « Réseau » et « réseaux ». L'onglet **« Arborescence »**
 ramène à l'arbre.
 
-Deux boutons à côté du champ :
+Deux cases à cocher, sous le champ :
 
-- **`Aa`** : respecter la casse (distingue majuscules et minuscules) ;
-- **`.*`** : activer les **expressions régulières** (voir ci-dessous).
+- **« Respecter la casse »** : distingue majuscules et minuscules ;
+- **« Expression régulière »** : active les **regex** (voir ci-dessous).
 
 ## Les expressions régulières (regex)
 
@@ -103,6 +118,20 @@ Exemples utiles sur ces disques :
 N'hésite pas à expérimenter : si l'expression est invalide, l'outil te le signale
 sans rien casser.
 
+## Rechercher dans le fichier affiché (Ctrl-F)
+
+Pour chercher **à l'intérieur du fichier ouvert**, appuie sur **Ctrl-F** (Cmd-F sur
+Mac). Une petite barre apparaît en haut à droite du visualiseur : tape ton texte,
+toutes les occurrences sont surlignées et la courante apparaît en **vidéo inverse**.
+
+- **Entrée** : occurrence suivante — **Maj+Entrée** : précédente (ou les flèches ▲ ▼) ;
+- un compteur indique « position / total » ;
+- **Échap** (ou ✕) ferme la barre.
+
+À ne pas confondre avec la recherche de gauche : **Ctrl-F** cherche dans le **fichier
+courant** (tous les modes, y compris *Source + Lecture*), tandis que « Recherche dans
+les textes » cherche dans **tout le disque**.
+
 ## Produire un rapport
 
 Le bouton **« 📊 Rapport… »** crée une synthèse du disque (nombre de dossiers et de
@@ -116,7 +145,7 @@ Les images de disque et leur contenu sont des données privées — à ne pas di
 
 ## Version et licence
 
-**Navigateur Smaky — version 0.1.0**
+**Navigateur Smaky — version 0.3.0**
 
 © 2026 **Epsitec SA** et **Pierre-Yves Rochat**.
 

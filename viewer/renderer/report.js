@@ -1,6 +1,17 @@
 // Calcul et mise en forme d'un rapport synthétique sur un (sous-)arbre du disque.
 // Les données proviennent du manifeste déjà chargé : aucun accès disque.
 
+// Extension « effective » d'un fichier.
+// Les fichiers d'association Smaky « nom!type » (p. ex. compta!typo) ne sont pas
+// des documents : ce sont des manifestes listant les fichiers liés d'un ensemble
+// (gérés jadis par le programme Start, pour que la copie entraîne les fichiers liés).
+// On les distingue des vrais documents par un préfixe « ! » (ainsi cocher « typo »
+// ne sélectionne pas les « !typo »).
+function smakyExt(node) {
+  const base = node.smaky_ext || "(sans)";
+  return node.name && node.name.includes("!") ? "!" + base : base;
+}
+
 // Parcourt récursivement les nœuds et agrège les statistiques.
 function computeReport(nodes) {
   const r = { dirs: 0, files: 0, links: 0, bytes: 0, hidden: 0, encoded: 0, byExt: new Map() };
@@ -13,7 +24,7 @@ function computeReport(nodes) {
         r.bytes += n.size || 0;
         if (n.hidden) r.hidden++;
         if (n.encoded) r.encoded++;
-        const e = n.smaky_ext || "(sans)";
+        const e = smakyExt(n);
         const cur = r.byExt.get(e) || { count: 0, bytes: 0 };
         cur.count++; cur.bytes += n.size || 0;
         r.byExt.set(e, cur);
@@ -124,4 +135,4 @@ function formatReport(r, format, opts) {
   return toText(r, opts);
 }
 
-export { computeReport, formatReport };
+export { computeReport, formatReport, smakyExt };
