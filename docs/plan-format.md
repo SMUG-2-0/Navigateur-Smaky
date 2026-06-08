@@ -119,11 +119,29 @@ Galerie : `test_plan/render/`.
 
 **Texte** (T7) : `[type 8, fonte, (style<<8)|car, y, x, attr]`. Octet bas du 3ᵉ mot
 = code ASCII ; `y` = ligne de base ; `x` = position absolue du caractère (1 enr./car).
-La **fonte** (mot 1) est souvent un code **ASCII** 2 lettres (« UL », « UR », « DA »…)
-ou un descripteur `0xCE8x` (partagé avec les calques -3 : Fond=…80, Évidence=…81).
-La fonte PLAN est **proportionnelle** : l'avance `x[n+1]-x[n]` = largeur du glyphe
-(varie par caractère), **pas** la taille. Pour le rendu : taille **uniforme par ligne**
-= médiane des avances / 0,55 (sinon i/M auraient des tailles différentes).
+La **fonte** (mot 1) est un code **ASCII** 2 lettres (« UL », « UR », « DA »…).
+L'octet **haut de l'opcode** (`0xNN08`) = **avance** (chasse) du glyphe en unités fichier.
+
+#### Taille réelle des caractères (CONFIRMÉ — corpus + table de fontes)
+Les polices Smaky sont des **bitmaps à taille fixe** ; **la taille (hauteur en pixels)
+est dans le nom de la police**. La **table des fontes** est dans les enregistrements
+`0xFFFD` (mêmes que les calques nommés) :
+
+- octets 2–3 = code famille (« UL », « UR »…), octet 4 = **identifiant de style**,
+  octets 6+ = **nom de la police** (chaîne ASCII, ex. `ul06`, `ur08`, `camor48`).
+- Chaque caractère (type 8) porte ce même **identifiant de style** (octet haut du
+  mot 2). On relie donc caractère → entrée de table → nom → **taille** (chiffres
+  finaux du nom). Taille en unités fichier = `px × 4`.
+
+Familles relevées : **U = Univers**, graisses **L**ight / **R**oman / **B**old /
+**I**talic / E(?) ; suffixe **p** = proportionnel ; **D** (grandes tailles), polices
+nommées (`camor48`)… Le chiffre = **hauteur en pixels** de la matrice (jadis éditée
+par `EDICAR.SM`). Ex. : en-tête `camor5.plan` → corps en `ur08` (8 px), petites
+mentions `ul06` (6 px), titre `camor48` (48 px).
+
+Le rendu (`smakyplan.js`) applique cette taille réelle par caractère ; il ne retombe
+sur l'ancienne heuristique (médiane des avances / 0,55) que pour un caractère dont la
+police reste inconnue.
 
 **Groupes** : `0x66` (début) … `0x67` (fin). Un polygone = groupe d'arêtes `op=3`.
 Des paires `0x66/0x67` **vides** peuvent apparaître (objets annulés à la saisie).

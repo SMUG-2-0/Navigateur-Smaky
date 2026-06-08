@@ -38,6 +38,26 @@ function decodePlan(bytes) {
   const s16 = (i) => { const v = u16(i); return v >= 0x8000 ? v - 0x10000 : v; };
   const prims = [];
 
+  // Table des fontes : les enregistrements 0xFFFD nomment des ressources (calques
+  // ET polices). Une police porte sa TAILLE dans son nom — hauteur en pixels de la
+  // matrice bitmap (ex. "ur08" = Univers Roman 8 px, "ul06" = Univers Light 6 px,
+  // "camor48" = 48 px ; familles Univers L/R/B/I, suffixe p = proportionnel). Chaque
+  // entrée a un identifiant de style (octet haut du mot 2) auquel les caractères se
+  // réfèrent, ce qui donne la taille réelle de chaque caractère.
+  const sizeByStyle = new Map();
+  for (let i = 16; i + 16 <= bytes.length; i += 16) {
+    if (u16(i) !== 0xFFFD) continue;
+    const styleId = bytes[i + 4];
+    let nm = "";
+    for (let k = i + 6; k < i + 16 && bytes[k] >= 32 && bytes[k] < 127; k++)
+      nm += String.fromCharCode(bytes[k]);
+    const m = nm.match(/(\d+)[a-z]?$/i);                // chiffres finaux = hauteur (px)
+    if (m) {
+      const px = parseInt(m[1], 10);
+      if (px >= 2 && px <= 200) sizeByStyle.set(styleId, px);
+    }
+  }
+
   for (let i = 16; i + 16 <= bytes.length; i += 16) {
     const op = u16(i);
     if (op >= 0xFFF0) continue;                       // sections de bibliothèque
@@ -57,7 +77,7 @@ function decodePlan(bytes) {
       case 7:                                         // surface remplie
         prims.push({ k: "rect", ya: a, xa: b, yb: c, xb: d, round: 0, fill: true }); break;
       case 8:                                         // caractère [fonte, (style<<8)|car, y, x]
-        prims.push({ k: "char", x: d, y: c, code: u16(i + 4) & 0xFF }); break;
+        prims.push({ k: "char", x: d, y: c, code: u16(i + 4) & 0xFF, style: bytes[i + 4] }); break;
       case 10: case 11:                               // ellipse [ry, rx, cy, cx] ; 11 = arc
         prims.push({ k: "ellipse", cx: d, cy: c, rx: Math.abs(b), ry: Math.abs(a), mod, arc: typ === 11 }); break;
       // op 9 = arc de cercle : masque de quadrants dans le mot 1, rayon unique.
@@ -68,9 +88,17 @@ function decodePlan(bytes) {
   }
   if (!prims.length) return null;
 
-  // Taille de police : la fonte PLAN est proportionnelle (l'avance dépend du
-  // glyphe), donc on fixe UNE taille par ligne (même ordonnée) à partir de la
-  // médiane des avances de la ligne. Évite que i/M aient des tailles différentes.
+  // Taille de chaque caractère. En priorité : la VRAIE hauteur de sa police (table
+  // 0xFFFD), convertie dans les unités du fichier (coordonnées stockées à ×4).
+  const FILE_SCALE = 4;                               // valeur_stockée = 4 × affiché
+  for (const p of prims) if (p.k === "char") {
+    const px = sizeByStyle.get(p.style);
+    if (px) p.fs = px * FILE_SCALE;
+  }
+
+  // Repli : pour les caractères dont la police reste inconnue, on retombe sur
+  // l'heuristique d'origine (taille par ligne = médiane des avances), la fonte PLAN
+  // étant proportionnelle (l'avance dépend du glyphe, pas de la taille).
   const lines = new Map();                            // y -> liste de caractères
   for (const p of prims) if (p.k === "char") {
     if (!lines.has(p.y)) lines.set(p.y, []);
@@ -79,6 +107,7 @@ function decodePlan(bytes) {
   let globalFs = 22;
   for (const chars of lines.values()) {
     chars.sort((a, b) => a.x - b.x);
+    if (chars.every((p) => p.fs)) continue;           // ligne déjà résolue par les polices
     const advs = [];
     for (let i = 1; i < chars.length; i++) {
       const dx = chars[i].x - chars[i - 1].x;
@@ -87,11 +116,10 @@ function decodePlan(bytes) {
     let fs = globalFs;
     if (advs.length) {
       advs.sort((a, b) => a - b);
-      const med = advs[advs.length >> 1];
-      fs = Math.round(med / 0.55);                    // médiane ≈ 0,55 em (minuscules)
+      fs = Math.round(advs[advs.length >> 1] / 0.55); // médiane ≈ 0,55 em (minuscules)
       globalFs = fs;
     }
-    for (const p of chars) p.fs = fs;                 // taille uniforme sur la ligne
+    for (const p of chars) if (!p.fs) p.fs = fs;      // complète les caractères sans police
   }
 
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
