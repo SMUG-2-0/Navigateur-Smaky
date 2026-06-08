@@ -61,6 +61,34 @@ formats Smaky décodés à la volée :
   voir [docs/typo-format.md](docs/typo-format.md) ;
 - **dessins vectoriels `.PLAN`** rendus en SVG — voir [docs/plan-format.md](docs/plan-format.md).
 
+## Télécharger l'application (versions prêtes à l'emploi)
+
+Pas besoin de compiler quoi que ce soit : les exécutables des trois systèmes sont
+publiés sur la **page des _Releases_ du dépôt**, téléchargeables **sans compte
+GitHub** :
+
+**➡️ <https://github.com/SMUG-2-0/Navigateur-Smaky/releases/latest>**
+
+| Système | Fichier à télécharger |
+|---------|-----------------------|
+| **macOS** (Intel + Apple Silicon) | `…-universal.dmg` |
+| **Windows** — installateur | `…Setup….exe` |
+| **Windows** — portable (sans installation) | `….exe` (celui **sans** « Setup ») |
+| **Linux** — universel | `….AppImage` |
+| **Linux** — Debian / Ubuntu / Zorin / Mint | `…_amd64.deb` |
+| **Linux** — archive | `….tar.gz` |
+
+> ⚠️ **Premier lancement.** Les binaires ne sont **pas signés** (pas de compte
+> payant Apple/Microsoft) : le système affiche un avertissement, c'est normal.
+>
+> - **macOS** : clic droit sur l'app → **Ouvrir** → confirmer (une seule fois) ;
+> - **Windows** : écran « Windows a protégé votre ordinateur » →
+>   **Informations complémentaires** → **Exécuter quand même** ;
+> - **Linux** : rendre l'AppImage exécutable (`chmod +x`), voir la section Linux plus bas.
+>
+> Détails par système : voir « Builds automatiques » et « Installer / lancer sous
+> Linux » ci-dessous.
+
 ## Démarrage rapide
 
 Application Electron (Node.js) :
@@ -112,25 +140,46 @@ correspondant :
 - **macOS** est requis par `electron-builder` pour produire un `.dmg` en local. Sans
   Mac, on le construit **dans le nuage** via GitHub Actions (voir ci-dessous).
 
-### Construire la version macOS sans Mac (GitHub Actions)
+### Builds automatiques multi-plateformes (GitHub Actions)
 
-Le workflow [`.github/workflows/build-macos.yml`](.github/workflows/build-macos.yml)
-construit le `.dmg` sur un runner macOS gratuit de GitHub :
+Le workflow [`.github/workflows/build.yml`](.github/workflows/build.yml) construit les
+**trois** systèmes (macOS, Windows, Linux) sur les runners gratuits de GitHub, puis
+rassemble tous les binaires dans **une seule Release**. Aucune machine Mac/Windows/Linux
+n'est donc nécessaire en local.
 
-- **manuel** : onglet **Actions** → **Build macOS** → **Run workflow** ; le `.dmg` est
-  téléchargeable en bas du run (section *Artifacts*) ;
-- **sur tag** : pousser un tag `vX.Y.Z` (`git tag v0.3.0 && git push origin v0.3.0`)
-  construit le `.dmg` **et** crée une *Release* avec le fichier attaché.
+- **manuel** : onglet **Actions** → **Build** → **Run workflow** ; les fichiers sont
+  téléchargeables en bas du run (section *Artifacts*) — ⚠️ visibles **uniquement si vous
+  êtes connecté à GitHub**, et ils expirent après quelques semaines ;
+- **sur tag** : pousser un tag `vX.Y.Z` construit tout **et** crée une *Release*
+  **publique** (téléchargeable **sans compte**) — la voie à privilégier pour partager :
+  ```bash
+  # après avoir mis à jour "version" dans viewer/package.json
+  git commit -am "vX.Y.Z : ..."
+  git tag -a vX.Y.Z -m "vX.Y.Z"
+  git push origin main && git push origin vX.Y.Z
+  ```
 
-Le `.dmg` est **universel** (Intel + Apple Silicon) mais **non signé** (pas de compte
-Apple Developer). Au premier lancement, macOS bloque l'app (« développeur non
-identifié », voire « endommagée » sur Apple Silicon). Pour l'ouvrir :
+> **Artifacts vs Releases.** Les *Artifacts* d'un run ne sont accessibles qu'aux
+> personnes **connectées** à GitHub et expirent ; les *Releases* (créées par un tag)
+> sont **publiques** et permanentes. Pour diffuser l'application, utilisez toujours la
+> page *Releases*.
 
-- **clic droit** sur l'app → **Ouvrir** → confirmer (à faire **une seule fois**) ; ou
-- en Terminal : `xattr -dr com.apple.quarantine "/Applications/Navigateur Smaky.app"`.
+#### Premier lancement : binaires non signés
 
-Pour supprimer tout avertissement, il faudrait signer et *notariser* l'app avec un
-compte Apple Developer (99 $/an) — non nécessaire pour un usage interne.
+Faute de certificat payant, les exécutables ne sont pas signés ; chaque système
+affiche un avertissement au premier lancement.
+
+- **macOS** — le `.dmg` est **universel** (Intel + Apple Silicon). macOS bloque l'app
+  (« développeur non identifié », voire « endommagée » sur Apple Silicon) :
+  - **clic droit** sur l'app → **Ouvrir** → confirmer (à faire **une seule fois**) ; ou
+  - en Terminal : `xattr -dr com.apple.quarantine "/Applications/Navigateur Smaky.app"`.
+  - *(Pour supprimer tout avertissement, il faudrait signer et notariser l'app avec un
+    compte Apple Developer — 99 $/an, non nécessaire pour un usage interne.)*
+- **Windows** — Microsoft Defender SmartScreen affiche « Windows a protégé votre
+  ordinateur » : cliquer **Informations complémentaires** → **Exécuter quand même**
+  (idem pour l'installateur `Setup` et la version portable).
+- **Linux** — pas de signature à gérer ; il suffit de rendre l'AppImage exécutable
+  (voir ci-dessous).
 
 ### Installer / lancer sous Linux (ex. Zorin OS, GNOME)
 
@@ -144,8 +193,8 @@ Trois formats sont produits ; choisis selon l'usage.
 
 - **AppImage** — un seul fichier portable, aucune installation ni droits root :
   ```bash
-  chmod +x "Navigateur Smaky-0.3.0.AppImage"
-  ./"Navigateur Smaky-0.3.0.AppImage"
+  chmod +x Navigateur.Smaky-0.4.0.AppImage
+  ./Navigateur.Smaky-0.4.0.AppImage
   ```
   Si le lancement échoue faute de FUSE : `sudo apt install libfuse2`, ou ajouter
   l'option `--appimage-extract-and-run`.
@@ -153,7 +202,7 @@ Trois formats sont produits ; choisis selon l'usage.
 - **.deb** — installation intégrée (menu, icône, désinstallation propre) sur les
   distributions à base Debian :
   ```bash
-  sudo apt install ./smaky-viewer_0.3.0_amd64.deb   # ou double-clic
+  sudo apt install ./smaky-viewer_0.4.0_amd64.deb   # ou double-clic
   sudo apt remove smaky-viewer                       # désinstallation
   ```
 
