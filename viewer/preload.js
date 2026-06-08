@@ -5,6 +5,14 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("api", {
   pickFolder: () => ipcRenderer.invoke("pick-folder"),
+  // Ouvre une image .DI et l'extrait ; renvoie { root } | { canceled } | { error }.
+  openDi: () => ipcRenderer.invoke("open-di"),
+  // S'abonne à la progression de l'extraction ; renvoie une fonction de désabonnement.
+  onExtractProgress: (cb) => {
+    const listener = (_e, p) => cb(p);
+    ipcRenderer.on("extract-progress", listener);
+    return () => ipcRenderer.removeListener("extract-progress", listener);
+  },
   readManifest: () => ipcRenderer.invoke("read-manifest"),
   // Renvoie { bytes: ArrayBuffer } ou { error }.
   readFile: (fosPath) => ipcRenderer.invoke("read-file", fosPath),

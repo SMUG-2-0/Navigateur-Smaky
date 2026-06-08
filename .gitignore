@@ -26,6 +26,10 @@ venv/
 node_modules/
 dist/
 out/
+# exécutables construits (au cas où hors de dist/)
+*.dmg
+*.AppImage
+*.deb
 
 # Systèmes
 .DS_Store

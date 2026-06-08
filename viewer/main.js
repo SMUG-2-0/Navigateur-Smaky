@@ -14,6 +14,7 @@
 const { app, BrowserWindow, ipcMain, dialog, clipboard } = require("electron");
 const fs = require("fs/promises");
 const path = require("path");
+const { Worker } = require("worker_threads");
 
 let currentRoot = null; // dossier extrait actuellement ouvert (contient manifest.json + tree/)
 
@@ -48,6 +49,53 @@ ipcMain.handle("pick-folder", async () => {
   }
   currentRoot = folder;
   return { root: folder };
+});
+
+// Ouvre une image disque .DI et l'extrait (en JavaScript, sans dépendance
+// native) vers un dossier "<nom>_extracted" produisant tree/ + manifest.json,
+// au même format que tools/extract_di.py. L'extraction tourne dans un worker
+// thread pour ne pas figer l'interface ; la progression est renvoyée au renderer.
+ipcMain.handle("open-di", async (evt) => {
+  const pick = await dialog.showOpenDialog({
+    title: "Choisir une image disque Smaky (.DI)",
+    properties: ["openFile"],
+    filters: [
+      { name: "Image disque Smaky", extensions: ["di", "DI"] },
+      { name: "Tous les fichiers", extensions: ["*"] },
+    ],
+  });
+  if (pick.canceled || !pick.filePaths.length) return { canceled: true };
+  const diPath = pick.filePaths[0];
+
+  // Destination : on demande le dossier parent, et on y crée "<nom>_extracted".
+  const base = path.basename(diPath).replace(/\.[^.]*$/, "");
+  const destPick = await dialog.showOpenDialog({
+    title: `Choisir où créer le dossier « ${base}_extracted »`,
+    defaultPath: path.dirname(diPath),
+    properties: ["openDirectory", "createDirectory"],
+  });
+  if (destPick.canceled || !destPick.filePaths.length) return { canceled: true };
+  const outDir = path.join(destPick.filePaths[0], `${base}_extracted`);
+
+  return await new Promise((resolve) => {
+    const worker = new Worker(path.join(__dirname, "extract-worker.js"), {
+      workerData: { diPath, outDir },
+    });
+    worker.on("message", (msg) => {
+      if (msg.type === "progress") {
+        evt.sender.send("extract-progress", msg);
+      } else if (msg.type === "done") {
+        currentRoot = outDir;
+        resolve({ root: outDir }); // le worker se termine seul ensuite
+      } else if (msg.type === "error") {
+        resolve({ error: msg.message });
+      }
+    });
+    worker.on("error", (e) => resolve({ error: String((e && e.message) || e) }));
+    worker.on("exit", (code) => {
+      if (code !== 0) resolve({ error: `Extraction interrompue (code ${code}).` });
+    });
+  });
 });
 
 // Charge et renvoie le manifeste (objet JSON).

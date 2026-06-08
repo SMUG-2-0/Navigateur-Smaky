@@ -245,3 +245,21 @@ pre.typo-src .t-cmd { color: #6a9955; } /* commandes \... atténuées */
 .help-body pre { background: var(--panel2); padding: 10px 12px; border-radius: 8px; overflow: auto; }
 .help-body pre code { background: none; padding: 0; }
 .help-body hr { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
+
+/* --- Overlay de progression (extraction .DI) --- */
+.progress-overlay {
+  position: fixed; inset: 0; background: #000b; z-index: 20;
+  display: flex; align-items: center; justify-content: center;
+}
+.progress-box {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 28px 36px; box-shadow: 0 12px 40px #000a; min-width: 320px;
+}
+.progress-text { color: var(--text); font-size: 14px; text-align: center; }
+.spinner {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 4px solid var(--border); border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

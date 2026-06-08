@@ -27,6 +27,8 @@
     "files": [
       "main.js",
       "preload.js",
+      "fosfat.js",
+      "extract-worker.js",
       "help.md",
       "renderer/**/*",
       "package.json"

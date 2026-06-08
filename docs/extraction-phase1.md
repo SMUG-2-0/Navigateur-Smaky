@@ -1,5 +1,12 @@
 # Phase 1 — Extraction d'une image `.DI` vers un dossier
 
+> **Note.** L'application **Navigateur Smaky** ouvre désormais une image `.DI`
+> **directement** (bouton « 💿 Ouvrir une image .DI… »), sans WSL ni Python : la
+> lecture du format FOS y est portée en JavaScript (`viewer/fosfat.js`). C'est la
+> voie recommandée. Le présent document décrit la **chaîne d'origine** (Python +
+> binaire natif FOSfat sous WSL), conservée comme voie avancée et comme **référence
+> de validation** : le portage JS produit une sortie identique au fichier près.
+
 Mode d'emploi complet de l'extraction d'une image disque Smaky (FOS) vers un
 dossier ordinaire du PC, avec préservation des métadonnées.
 

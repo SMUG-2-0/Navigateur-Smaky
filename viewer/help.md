@@ -1,14 +1,26 @@
 # Aide — Navigateur Smaky
 
-Cet outil permet d'explorer le contenu d'un disque Smaky (format FOS) qui a été
-extrait dans un dossier. Il affiche l'arborescence, visualise les fichiers
-(textes, images, format Typo…) et permet de filtrer et de rechercher.
+Cet outil permet d'explorer le contenu d'un disque Smaky (format FOS). Il affiche
+l'arborescence, visualise les fichiers (textes, images, format Typo…) et permet de
+filtrer et de rechercher.
 
 ## Ouvrir un disque
 
-Clique sur **« 📂 Ouvrir un dossier extrait… »** et choisis le dossier produit
-par l'extraction (celui qui contient `manifest.json` et un sous-dossier `tree/`).
-L'arborescence apparaît à gauche.
+Deux façons d'ouvrir un disque :
+
+- **« 💿 Ouvrir une image .DI… »** — le plus simple : choisis directement une image
+  disque Smaky (fichier `.DI`). L'outil la lit lui-même et l'extrait dans un dossier
+  `«nom»_extracted` (il te demande où le créer). Une barre de progression s'affiche ;
+  pour un gros disque dur, compter quelques dizaines de secondes. Aucune installation
+  supplémentaire n'est nécessaire — ni WSL, ni Python.
+- **« 📂 Ouvrir un dossier extrait… »** — si le disque a **déjà** été extrait : choisis
+  le dossier produit (celui qui contient `manifest.json` et un sous-dossier `tree/`).
+
+Dans les deux cas, l'arborescence apparaît ensuite à gauche.
+
+> L'image `.DI` d'origine n'est **jamais modifiée** : l'outil la lit en lecture seule.
+> Conseil : pour aller plus vite, crée le dossier d'extraction sur un disque local
+> plutôt que dans un dossier synchronisé (Dropbox, OneDrive…).
 
 ## Naviguer dans l'arborescence
 

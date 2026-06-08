@@ -16,15 +16,44 @@ const state = { manifest: null, node: null, bytes: null, mode: "text", currentDi
 // Affiche la version de l'application dans l'en-tête.
 window.api.getVersion().then((v) => { el("appVersion").textContent = "v" + v; });
 
-// --- Ouverture du dossier --------------------------------------------------
+// --- Ouverture (dossier extrait ou image .DI) ------------------------------
 
 el("openBtn").addEventListener("click", openFolder);
+el("openDiBtn").addEventListener("click", openDi);
 
+// Ouvre un dossier déjà extrait (contenant manifest.json + tree/).
 async function openFolder() {
   const res = await window.api.pickFolder();
   if (!res) return;
   if (res.error) { showError(res.error); return; }
-  el("folderPath").textContent = res.root;
+  await loadFolder(res.root);
+}
+
+// Ouvre une image .DI : l'extrait (avec barre de progression) puis l'affiche.
+async function openDi() {
+  showProgress("Préparation…");
+  const unsubscribe = window.api.onExtractProgress((p) => {
+    showProgress(
+      `Extraction en cours… ${p.dirs.toLocaleString("fr")} dossiers, ` +
+      `${p.files.toLocaleString("fr")} fichiers, ` +
+      `${formatBytes(p.bytes)}`
+    );
+  });
+  try {
+    const res = await window.api.openDi();
+    if (!res || res.canceled) { hideProgress(); return; }
+    if (res.error) { hideProgress(); showError(res.error); return; }
+    showProgress("Chargement du disque…");
+    await loadFolder(res.root);
+  } finally {
+    unsubscribe();
+    hideProgress();
+  }
+}
+
+// Charge le manifeste d'un dossier extrait et configure l'interface.
+async function loadFolder(root) {
+  el("folderPath").textContent = root;
   const m = await window.api.readManifest();
   if (m.error) { showError(m.error); return; }
   state.manifest = m.manifest;
@@ -42,6 +71,34 @@ async function openFolder() {
   el("content").innerHTML =
     `<p class="placeholder">Disque chargé : ${s.dirs || 0} dossiers, ` +
     `${s.files || 0} fichiers. Sélectionne un fichier à gauche.</p>`;
+}
+
+// Octets -> chaîne lisible (Ko/Mo).
+function formatBytes(n) {
+  if (n >= 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + " Mo";
+  if (n >= 1024) return (n / 1024).toFixed(0) + " Ko";
+  return n + " o";
+}
+
+// Affiche/masque l'overlay de progression d'extraction.
+function showProgress(text) {
+  let ov = el("progressOverlay");
+  if (!ov) {
+    ov = document.createElement("div");
+    ov.id = "progressOverlay";
+    ov.className = "progress-overlay";
+    ov.innerHTML =
+      '<div class="progress-box"><div class="spinner"></div>' +
+      '<div id="progressText" class="progress-text"></div></div>';
+    document.body.appendChild(ov);
+  }
+  ov.classList.remove("hidden");
+  el("progressText").textContent = text;
+}
+
+function hideProgress() {
+  const ov = el("progressOverlay");
+  if (ov) ov.classList.add("hidden");
 }
 
 // --- Arbre (rendu paresseux) ----------------------------------------------
