@@ -6,7 +6,7 @@ confié par Epsitec SA.
 
 Les disques Smaky (ordinateurs suisses, ici fin des années 1990) utilisent le
 système de fichiers FOS. Le projet [FOSfat](https://github.com/Skywalker13/Fosfat)
-(développé chez Epsitec) fournit un accès **en lecture seule** à ces disques.
+(projet libre de Mathieu Schroeter) fournit un accès **en lecture seule** à ces disques.
 
 L'application **Navigateur Smaky** (`viewer/`) ouvre désormais une image `.DI`
 **directement**, sans aucune dépendance externe : la lecture du format FOS y est
@@ -57,6 +57,8 @@ formats Smaky décodés à la volée :
 
 - **texte** (jeu de caractères Smaky) ;
 - **images** `.IMAGE` / `.COLOR` ;
+- **TEXT.CODE / Text4** (éditeur de texte mis en page `.text`) en *Lecture* / *Source* /
+  côte à côte — voir [docs/text-format.md](docs/text-format.md) ;
 - **Typo** (composition typographique) en *Lecture* / *Source* / côte à côte —
   voir [docs/typo-format.md](docs/typo-format.md) ;
 - **dessins vectoriels `.PLAN`** rendus en SVG — voir [docs/plan-format.md](docs/plan-format.md).
@@ -193,8 +195,8 @@ Trois formats sont produits ; choisis selon l'usage.
 
 - **AppImage** — un seul fichier portable, aucune installation ni droits root :
   ```bash
-  chmod +x Navigateur.Smaky-0.4.0.AppImage
-  ./Navigateur.Smaky-0.4.0.AppImage
+  chmod +x Navigateur.Smaky-0.4.1.AppImage
+  ./Navigateur.Smaky-0.4.1.AppImage
   ```
   Si le lancement échoue faute de FUSE : `sudo apt install libfuse2`, ou ajouter
   l'option `--appimage-extract-and-run`.
@@ -202,7 +204,7 @@ Trois formats sont produits ; choisis selon l'usage.
 - **.deb** — installation intégrée (menu, icône, désinstallation propre) sur les
   distributions à base Debian :
   ```bash
-  sudo apt install ./smaky-viewer_0.4.0_amd64.deb   # ou double-clic
+  sudo apt install ./smaky-viewer_0.4.1_amd64.deb   # ou double-clic
   sudo apt remove smaky-viewer                       # désinstallation
   ```
 
@@ -233,7 +235,7 @@ besoin, ferme/rouvre la session pour rafraîchir le cache d'icônes).
 
 Logiciel libre sous **GNU General Public License v3** — voir [LICENSE](LICENSE).
 © 2026 Epsitec SA et Pierre-Yves Rochat. S'appuie sur FOSfat / libfosgra
-(Mathieu Schroeter, Epsitec SA), également sous GPL v3.
+(Mathieu Schroeter), également sous GPL v3.
 
 ## Contenu du dépôt
 
@@ -250,6 +252,7 @@ viewer/              application Electron (navigateur, rapports, visualiseurs)
   install-desktop-linux.sh   crée un lanceur GNOME/freedesktop (AppImage)
 docs/
   extraction-phase1.md   mode d'emploi détaillé de la phase 1
+  text-format.md         notes sur le format de l'éditeur TEXT.CODE / Text4
   format-typo.md         notes sur le format de composition Typo
 README.md
 .gitignore

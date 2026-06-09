@@ -1,5 +1,8 @@
 # Format `.PLAN` (Smaky — dessin vectoriel, ~1985)
 
+> Programme **PLAN**, auteur **Daniel Roux** (également auteur des éditeurs
+> **TEXT.CODE** et **PAGE** du Smaky).
+
 État : **rétro-ingénierie en cours**. Ce document consigne les faits établis et les
 hypothèses à confirmer par fichiers de test contrôlés (émulateur Smaky Infini).
 

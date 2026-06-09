@@ -1,6 +1,6 @@
 {
   "name": "smaky-viewer",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Navigateur et visualiseur de disques Smaky extraits (format FOS)",
   "homepage": "https://www.epsitec.ch/",
   "main": "main.js",

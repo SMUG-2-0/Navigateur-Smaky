@@ -9,9 +9,9 @@ les Smaky, en vue de son décodage et de sa visualisation.
 
 ## 1. Origine
 
-Typo est un format de composition typographique développé à l'**EPFL**, dans le
-laboratoire du professeur **Jean-Daniel Nicoud** (LAMI — Laboratoire de
-micro-informatique). On peut le décrire comme une sorte de « LaTeX suisse » :
+Typo est un format de composition typographique développé à l'**EPFL**, au **LAMI**
+(Laboratoire de micro-informatique, dirigé par le professeur Jean-Daniel Nicoud) —
+parmi les auteurs de Typo, **Denis Dumoulin**. On peut le décrire comme une sorte de « LaTeX suisse » :
 un texte balisé par des commandes qui décrivent la mise en page, plutôt qu'un
 traitement de texte WYSIWYG.
 

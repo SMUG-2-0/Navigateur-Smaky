@@ -1,5 +1,6 @@
 import { decodeSmakyText, textRatio } from "./decoders/smakytext.js";
 import { renderTypoReadableHTML, renderTypoSourceHTML } from "./decoders/typo.js";
+import { isTextCode, renderTextReadableHTML, renderTextSourceHTML } from "./decoders/textcode.js";
 import { decodeImage } from "./decoders/smakyimage.js";
 import { decodePlan, planToSVG } from "./decoders/smakyplan.js";
 import { computeReport, formatReport, smakyExt } from "./report.js";
@@ -263,6 +264,9 @@ const MODES = {
   "typo-read": { label: "Lecture", render: (b) => renderHTMLView(renderTypoReadableHTML(b), b, "rendu indicatif") },
   "typo-src":  { label: "Source",  render: (b) => renderHTMLView(renderTypoSourceHTML(b), b) },
   "typo-dual": { label: "Source + Lecture", render: renderTypoDual },
+  "text-read": { label: "Lecture", render: (b) => renderHTMLView(renderTextReadableHTML(b), b, "rendu indicatif") },
+  "text-src":  { label: "Source",  render: (b) => renderHTMLView(renderTextSourceHTML(b), b) },
+  "text-dual": { label: "Source + Lecture", render: renderTextDual },
   assoc:       { label: "Fichiers associés", render: renderAssoc },
   hex:         { label: "Hexa",    render: renderHex },
 };
@@ -272,6 +276,7 @@ function modesForNode(node, bytes) {
   if (node.smaky_ext === "image" || node.smaky_ext === "color") return ["image", "hex"];
   if (node.smaky_ext === "plan") return ["plan", "hex"];
   if (node.smaky_ext === "typo") return ["typo-read", "typo-src", "typo-dual", "hex"];
+  if (node.smaky_ext === "text" && isTextCode(bytes)) return ["text-read", "text-src", "text-dual", "hex"];
   const looksText = TEXT_EXTS.has(node.smaky_ext) || textRatio(bytes) > 0.85;
   return looksText ? ["text", "hex"] : ["hex", "text"];
 }
@@ -300,12 +305,12 @@ function setMode(mode) {
   el("content").className = "content"; // repart d'un état propre (retire content--split, etc.)
   MODES[mode].render(state.bytes);
   // Surligne les correspondances de recherche dans les modes texte.
-  if (state.searchRe && ["text", "typo-read", "typo-src", "typo-dual"].includes(mode))
+  if (state.searchRe && ["text", "typo-read", "typo-src", "typo-dual", "text-read", "text-src", "text-dual"].includes(mode))
     highlightDOM(el("content"), state.searchRe);
   // Réapplique la recherche Ctrl-F au nouveau contenu si la barre est ouverte.
   if (findVisible()) runFind();
-  // Affiche les images référencées dans le rendu Typo (asynchrone).
-  if (["typo-read", "typo-dual"].includes(mode) && state.node)
+  // Affiche les images référencées dans les rendus Typo et TEXT (asynchrone).
+  if (["typo-read", "typo-dual", "text-read", "text-dual"].includes(mode) && state.node)
     hydrateFigures(el("content"), state.node);
 }
 
@@ -384,9 +389,17 @@ function renderHTMLView(html, bytes, note) {
     `${bytes.length.toLocaleString("fr")} octets` + (note ? ` — ${note}` : "");
 }
 
+function renderTypoDual(bytes) {
+  renderDualView(bytes, renderTypoSourceHTML(bytes), renderTypoReadableHTML(bytes));
+}
+
+function renderTextDual(bytes) {
+  renderDualView(bytes, renderTextSourceHTML(bytes), renderTextReadableHTML(bytes));
+}
+
 // Mode « Source + Lecture » : les deux rendus côte à côte, défilement indépendant,
 // séparation ajustable par glisser-déposer de la poignée centrale.
-function renderTypoDual(bytes) {
+function renderDualView(bytes, srcHTML, readHTML) {
   el("content").classList.add("content--split");
   const wrap = document.createElement("div");
   wrap.className = "typo-dual";
@@ -396,8 +409,8 @@ function renderTypoDual(bytes) {
     p.innerHTML = `<div class="dual-title">${title}</div>${inner}`;
     return p;
   };
-  const left = pane("Source", renderTypoSourceHTML(bytes));
-  const right = pane("Lecture", renderTypoReadableHTML(bytes));
+  const left = pane("Source", srcHTML);
+  const right = pane("Lecture", readHTML);
   const divider = document.createElement("div");
   divider.className = "dual-divider";
   divider.title = "Glisser pour ajuster";

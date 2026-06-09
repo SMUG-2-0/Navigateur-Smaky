@@ -1,4 +1,4 @@
-// Visualiseur du format Typo (composition typographique Smaky, labo J.-D. Nicoud).
+// Visualiseur du format Typo (composition typographique Smaky, labo LAMI de l'EPFL).
 //
 // Deux rendus :
 //  - Lecture : structure reconstituée (titres, sections numérotées, listes,

@@ -4,7 +4,8 @@
 > (disque ALPINE, 5659 fichiers) en l'absence de spécification d'origine.
 > **Niveaux de confiance** : ✅ confirmé par les octets · 🟡 fortement probable · ❓ hypothèse.
 >
-> Typo est le logiciel de composition typographique du Smaky (labo J.-D. Nicoud / Epsitec).
+> Typo est le logiciel de composition typographique du Smaky, développé au **LAMI**
+> (Laboratoire de microinformatique de l'EPFL ; parmi les auteurs, **Denis Dumoulin**).
 > Ce document sert de base au visualiseur (`viewer/renderer/decoders/typo.js`).
 
 ## 1. Structure physique du fichier ✅

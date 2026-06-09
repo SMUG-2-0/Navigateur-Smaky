@@ -3,7 +3,7 @@
  * Logiciel libre sous GNU General Public License v3 — voir le fichier LICENSE.
  *
  * Ce module est un portage en JavaScript de libfosfat (projet FOSfat,
- * Mathieu Schroeter, Epsitec SA), lui-même sous GPL v3.
+ * Mathieu Schroeter), lui-même sous GPL v3.
  */
 
 // Lecture du système de fichiers FOS des disques Smaky, directement depuis une

@@ -3,7 +3,7 @@
  * Logiciel libre sous GNU General Public License v3 — voir le fichier LICENSE.
  *
  * Ce module est un portage en JavaScript de libfosgra (projet FOSfat,
- * Mathieu Schroeter, Epsitec SA), lui-même sous GPL v3.
+ * Mathieu Schroeter), lui-même sous GPL v3.
  */
 
 // Décodage des images Smaky .IMAGE (1 bit/pixel) et .COLOR (4 bits/pixel).

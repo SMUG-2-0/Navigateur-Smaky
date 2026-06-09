@@ -271,6 +271,10 @@ mark { background: transparent; color: inherit; font-weight: 700; text-decoratio
 .typo-read li { margin: .12em 0; }
 .typo-read .t-blank { height: .5em; }
 .typo-read .t-space { width: 100%; }
+/* TEXT.CODE : indentation par tabulateurs (listes numérotées) + colonnes */
+.typo-read p.t-item { text-indent: -1.6em; }
+.typo-read .t-marker { display: inline-block; min-width: 1.3em; font-weight: 600; }
+.typo-read .t-tab { display: inline-block; min-width: 1.8em; }
 .typo-read p.t-line strong, .typo-read li strong { font-weight: 700; }
 .typo-read p.t-line em, .typo-read li em { font-style: italic; }
 .typo-read .t-fig { color: var(--muted); font-style: italic; margin: .3em 0; }

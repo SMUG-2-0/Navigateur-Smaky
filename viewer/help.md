@@ -47,6 +47,11 @@ droite :
   **côte à côte**, avec une séparation **ajustable** (glisse la poignée centrale) —
   idéal pour comprendre quelle commande produit quel effet. Les **images** référencées
   par `\image` sont affichées directement dans la Lecture lorsque le fichier est présent.
+- **Lecture** / **Source** / **Source + Lecture** *(documents `.text`)* : les fichiers
+  produits par l'éditeur **TEXT.CODE** (et sa version **Text4**) sont reconnus
+  automatiquement. *Lecture* affiche le texte mis en forme (gras, italique, titres,
+  paragraphes recollés), commandes masquées ; *Source* montre le balisage `\…`. Les
+  fichiers `.text` en **texte simple** (sans balisage) restent affichés en mode *Texte*.
 - **Fichiers associés** : pour les fichiers `nom!type` (manifestes Smaky qui listent les
   fichiers d'un même ensemble, gérés jadis par le programme *Start*). La liste s'affiche,
   et chaque nom est **cliquable** pour ouvrir le fichier lié.
@@ -163,7 +168,7 @@ Les images de disque et leur contenu sont des données privées — à ne pas di
 
 ## Version et licence
 
-**Navigateur Smaky — version 0.4.0**
+**Navigateur Smaky — version 0.4.1**
 
 © 2026 **Epsitec SA** et **Pierre-Yves Rochat**.
 
@@ -173,5 +178,5 @@ que publiée par la Free Software Foundation. Il est distribué dans l'espoir qu
 sera utile, mais **SANS AUCUNE GARANTIE**. Le texte complet figure dans le fichier
 `LICENSE` accompagnant le programme.
 
-Ce projet s'appuie sur **FOSfat / libfosgra** (Mathieu Schroeter, Epsitec SA),
+Ce projet s'appuie sur **FOSfat / libfosgra** (Mathieu Schroeter),
 également sous GPL v3 — notamment pour le décodage des images Smaky.
